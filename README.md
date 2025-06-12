@@ -1,4 +1,4 @@
-# Eshot Ulaşım MCP Sunucusu
+# İzmir Ulaşım MCP Sunucusu
 
 İzmir toplu taşıma verilerine erişim sağlayan bir Model Bağlam Protokolü (MCP) sunucusu, AI asistanlarının şehir ulaşım verilerini ve analizlerini sorgulamasına olanak tanır.
 
@@ -30,26 +30,22 @@ Bu MCP sunucusu, aşağıdaki araçları (tool) içermektedir:
 * `pandas`
 
 ### Kurulum
-
 1.  **Projeyi klonlayın veya indirin:**
     ```bash
-    git clone [https://github.com/ogulcanakca/izmir-ulasim-mcp.git](https://github.com/ogulcanakca/izmir-ulasim-mcp.git)
+    git clone https://github.com/ogulcanakca/izmir-ulasim-mcp.git
     cd izmir-ulasim-mcp
     ```
 
 2.  **Gerekli kütüphaneleri yükleyin:**
     ```bash
-   uv sync
-   ```
-
-   pip ile yüklemek isterseniz:
-
-   ```bash
-   pip install -r requirements.txt
-   ```
+    uv sync
+    ```
+    pip ile yüklemek isterseniz:
+    ```bash
+    pip install -r requirements.txt
+    ```
 
 ### MCP Client Configuration
-
 Sunucuyu Claude Desktop ile kullanmak için:
 
 **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
