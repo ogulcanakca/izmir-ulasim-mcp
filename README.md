@@ -48,13 +48,13 @@ Bu MCP sunucusu, aşağıdaki araçları (tool) içermektedir:
 ### MCP Client Configuration
 Sunucuyu Claude Desktop ile kullanmak için:
 
-**macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-**Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
 
 Cursor'da kullanmak için:
 
-**macOS**: `$HOME/.cursor/mcp.json`
-**Windows**: `%USERPROFILE%\.cursor\mcp.json`
+- **macOS**: `$HOME/.cursor/mcp.json`
+- **Windows**: `%USERPROFILE%\.cursor\mcp.json`
 
 ```json
 {
