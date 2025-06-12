@@ -1,0 +1,16 @@
+[project]
+name = "izmir_ulasim_mcp"
+version = "0.1.0"
+description = "İzmir toplu taşıma verilerine erişim sağlayan bir Model Bağlam Protokolü (MCP) sunucusu, AI asistanlarının şehir ulaşım verilerini ve analizlerini sorgulamasına olanak tanır."
+readme = "README.md"
+requires-python = ">=3.13"
+authors = [
+    {name = "Ogulcan Akca", email = "akca_ogulcan@hotmail.com"},
+]
+dependencies = [
+    "fastmcp>=2.8.0",
+    "mcp-cli>=0.1.0",
+    "pandas>=2.3.0",
+    "requests>=2.32.4",
+    "ruff>=0.11.13",
+]
