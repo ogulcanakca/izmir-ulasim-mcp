@@ -1,3 +1,5 @@
 mcp-server
 requests
 pandas 
+thefuzz
+pyarrow

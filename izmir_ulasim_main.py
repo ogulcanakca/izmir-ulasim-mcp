@@ -1,9 +1,11 @@
 import logging
 import requests
 import json
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 import pandas as pd
 import os
+from thefuzz import process 
+import pyarrow 
 import urllib.request
 import ssl
 
@@ -23,6 +25,58 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 mcp = FastMCP("izmir_ulasim")
+
+def load_or_process_stops_data(
+    raw_csv_filename='eshot-otobus-duraklari.csv',
+    processed_parquet_filename='processed_stops.parquet'
+) -> (Optional[pd.DataFrame], List[str]):
+    """
+    İşlenmiş Parquet dosyası varsa doğrudan onu yükler. Yoksa, ham CSV'yi işler,
+    Parquet olarak kaydeder ve sonucu döndürür. Dosya yollarını betiğin konumuna göre ayarlar.
+    """
+    # 1. Betiğin çalıştığı dizini bularak dosya yollarını daha sağlam hale getiriyoruz.
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    raw_csv_path = os.path.join(script_dir, 'files', raw_csv_filename)
+    processed_parquet_path = os.path.join(script_dir, 'files', processed_parquet_filename)
+
+    if os.path.exists(processed_parquet_path):
+        try:
+            logger.info(f"Hızlı başlangıç: İşlenmiş veri '{processed_parquet_path}' yükleniyor...")
+            df = pd.read_parquet(processed_parquet_path)
+            unique_names = df['DURAK_ADI'].dropna().unique().tolist()
+            logger.info(f"İşlenmiş durak verileri {len(unique_names)} kayıt ile başarıyla yüklendi.")
+            return df, unique_names
+        except Exception as e:
+            # Hata durumunda sessiz kalmak yerine logluyoruz.
+            logger.error(f"İşlenmiş Parquet dosyası ('{processed_parquet_path}') okunurken hata oluştu: {e}. Ham veri yeniden işlenecek.")
+
+    # Parquet dosyası yoksa veya okunamadıysa, ham veriyi işle (ilk çalıştırma)
+    try:
+        logger.info(f"İlk çalıştırma: Ham veri '{raw_csv_path}' işleniyor...")
+        
+        # 2. Ayıracı noktalı virgül (;) olarak değiştiriyoruz (daha yüksek ihtimal).
+        df = pd.read_csv(raw_csv_path, delimiter=';') 
+
+        df['ENLEM'] = df['ENLEM'].astype(str).str.replace('.', '', regex=False).str.replace(',', '.')
+        df['BOYLAM'] = df['BOYLAM'].astype(str).str.replace('.', '', regex=False).str.replace(',', '.')
+        df['ENLEM'] = pd.to_numeric(df['ENLEM'], errors='coerce')
+        df['BOYLAM'] = pd.to_numeric(df['BOYLAM'], errors='coerce')
+
+        df.to_parquet(processed_parquet_path)
+        logger.info(f"Temizlenmiş veri '{processed_parquet_path}' olarak başarıyla kaydedildi.")
+
+        unique_names = df['DURAK_ADI'].dropna().unique().tolist()
+        return df, unique_names
+        
+    except FileNotFoundError:
+        logger.error(f"HATA: Ham veri dosyası '{raw_csv_path}' konumunda bulunamadı! Lütfen dosyanın doğru yerde olduğundan emin olun.")
+        return None, []
+    except Exception as e:
+        # Diğer tüm hataları yakalayıp logluyoruz.
+        logger.error(f"Ham durak dosyası ('{raw_csv_path}') işlenirken genel bir hata oluştu: {e}")
+        return None, []
+
+stops_df, UNIQUE_STOP_NAMES = load_or_process_stops_data()
 
 # --- Tool 1: Durağa Yaklaşan Tüm Otobüsler ---
 @mcp.tool()
@@ -105,7 +159,7 @@ def hattin_duraga_yaklasan_otobuslerini_getir(line_id: int, stop_id: int) -> Opt
         return None
     return None
 
-# --- Tool 3: ACIKVERI API için Genel Arama ---
+# --- ACIKVERI API için Genel Arama Fonksiyonu ---
 def _search_acikveri(
     resource_id: str,
     query: Optional[str] = None,
@@ -137,24 +191,37 @@ def _search_acikveri(
         return None
     return None
 
-# --- Tool 4: Durak Arama ---
+
+# --- Tool 4: Akıllı Durak Arama ---
 @mcp.tool()
-def durak_ara(durak_adi: str, limit: int = 5) -> Optional[List[Dict[str, Any]]]:
+def durak_ara(durak_adi: str, limit: int = 5, benzerlik_esigi: int = 80) -> Optional[List[Dict[str, Any]]]:
     """
     Adında belirtilen metin geçen otobüs duraklarını arar.
+    Yazım hatalarını tolere eder ve yerel durak listesinden en benzer sonuçları bulur.
 
     Args:
         durak_adi (str): Aranacak durak adı veya bir kısmı.
         limit (int): Döndürülecek maksimum sonuç sayısı.
+        benzerlik_esigi (int): Bir sonucun eşleşme olarak kabul edilmesi için gereken minimum benzerlik skoru (0-100).
 
     Returns:
         Durak bilgilerini içeren kayıtların listesi.
     """
-    return _search_acikveri(
-        resource_id=DURAK_ARAMA_RESOURCE_ID,
-        query=durak_adi,
-        limit=limit
-    )
+    if stops_df is None or not UNIQUE_STOP_NAMES:
+        logger.error("Durak verileri yüklenemediği için durak araması yapılamıyor.")
+        return [{"hata": "Durak veritabanı hazır değil."}]
+    
+    matches = process.extract(durak_adi, UNIQUE_STOP_NAMES, limit=limit*2)
+    
+    good_matches = [match[0] for match in matches if match[1] >= benzerlik_esigi]
+    
+    if not good_matches:
+        return []
+
+    results_df = stops_df[stops_df['DURAK_ADI'].isin(good_matches)].head(limit)
+    
+    return results_df.to_dict('records')
+
 
 # --- Tool 5: Otobüs Hattı Arama ---
 @mcp.tool()
@@ -175,7 +242,7 @@ def hat_ara(hat_bilgisi: str, limit: int = 5) -> Optional[List[Dict[str, Any]]]:
         limit=limit
     )
 
-# --- ARAÇ 6: Hat Sefer Saati Arama (CSV'den) ---
+# --- Tool 6: Hat Sefer Saati Arama ---
 def _indir_ve_cache_le_sefer_saatleri_csv() -> Optional[str]:
     """
     Sefer saatleri CSV dosyasını indirir ve yerel bir kopyasını oluşturur.
@@ -189,8 +256,6 @@ def _indir_ve_cache_le_sefer_saatleri_csv() -> Optional[str]:
             logger.info(f"'{dosya_yolu}' bulunamadı, indiriliyor...")
             if not os.path.exists(klasor):
                 os.makedirs(klasor)
-
-            # SSL sertifika doğrulamasını esnek hale getir
             ssl_context = ssl.create_default_context()
             ssl_context.check_hostname = False
             ssl_context.verify_mode = ssl.CERT_NONE
@@ -227,7 +292,6 @@ def hat_sefer_saatlerini_ara(hat_no: int, limit: int = 50) -> Optional[List[Dict
         if hat_verileri.empty:
             return []
 
-        # Sonuçları JSON uyumlu bir formata dönüştür
         return hat_verileri.to_dict('records')
     except Exception as e:
         logger.error(f"Sefer saatleri CSV dosyası okunurken hata oluştu: {e}")
@@ -242,7 +306,7 @@ def hat_guzergah_koordinatlarini_getir(hat_no: int, limit: int = 250) -> Optiona
 
     Args:
         hat_no (int): Güzergahı alınacak hat numarası.
-        limit (int): Döndürülecek maksimum koordinat noktası sayısı.
+        limit (int): Döndürülelecek maksimum koordinat noktası sayısı.
 
     Returns:
         Güzergah koordinatlarını içeren kayıtların listesi.
