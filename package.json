@@ -6,6 +6,14 @@
   "bin": {
     "izmir-ulasim-mcp": "./index.js"
   },
+  "files": [
+    "index.js",
+    "izmir_ulasim_main.py",
+    "requirements.txt",
+    "README.md",
+    "config/",
+    "files/"
+  ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
