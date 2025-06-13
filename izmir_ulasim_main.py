@@ -34,7 +34,6 @@ def load_or_process_stops_data(
     İşlenmiş Parquet dosyası varsa doğrudan onu yükler. Yoksa, ham CSV'yi işler,
     Parquet olarak kaydeder ve sonucu döndürür. Dosya yollarını betiğin konumuna göre ayarlar.
     """
-    # 1. Betiğin çalıştığı dizini bularak dosya yollarını daha sağlam hale getiriyoruz.
     script_dir = os.path.dirname(os.path.abspath(__file__))
     raw_csv_path = os.path.join(script_dir, 'files', raw_csv_filename)
     processed_parquet_path = os.path.join(script_dir, 'files', processed_parquet_filename)
@@ -47,14 +46,11 @@ def load_or_process_stops_data(
             logger.info(f"İşlenmiş durak verileri {len(unique_names)} kayıt ile başarıyla yüklendi.")
             return df, unique_names
         except Exception as e:
-            # Hata durumunda sessiz kalmak yerine logluyoruz.
             logger.error(f"İşlenmiş Parquet dosyası ('{processed_parquet_path}') okunurken hata oluştu: {e}. Ham veri yeniden işlenecek.")
 
-    # Parquet dosyası yoksa veya okunamadıysa, ham veriyi işle (ilk çalıştırma)
     try:
         logger.info(f"İlk çalıştırma: Ham veri '{raw_csv_path}' işleniyor...")
         
-        # 2. Ayıracı noktalı virgül (;) olarak değiştiriyoruz (daha yüksek ihtimal).
         df = pd.read_csv(raw_csv_path, delimiter=';') 
 
         df['ENLEM'] = df['ENLEM'].astype(str).str.replace('.', '', regex=False).str.replace(',', '.')
@@ -72,7 +68,6 @@ def load_or_process_stops_data(
         logger.error(f"HATA: Ham veri dosyası '{raw_csv_path}' konumunda bulunamadı! Lütfen dosyanın doğru yerde olduğundan emin olun.")
         return None, []
     except Exception as e:
-        # Diğer tüm hataları yakalayıp logluyoruz.
         logger.error(f"Ham durak dosyası ('{raw_csv_path}') işlenirken genel bir hata oluştu: {e}")
         return None, []
 
