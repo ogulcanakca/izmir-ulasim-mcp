@@ -67,6 +67,18 @@ Cursor'da kullanmak için:
   }
 }
 ```
+veya npm ile oluşturmak isterseniz:
+```json
+{
+  "mcpServers": {
+    "izmir_ulasim_npm": {
+    "command": "npx",
+    "args": ["-y", "izmir-ulasim-mcp"]
+  }
+  }
+}
+```
+
 ## Örnek Kullanım
 
 ![ornek-sorgular](assets/ornek-sorgular.png)
