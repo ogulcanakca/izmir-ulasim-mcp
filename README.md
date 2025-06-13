@@ -38,6 +38,7 @@ Bu MCP sunucusu, aşağıdaki araçları (tool) içermektedir:
     ```
 
 2.  **Gerekli kütüphaneleri yükleyin:**
+3.  
     ```bash
    uv sync
    ```
