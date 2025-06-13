@@ -1,0 +1,23 @@
+{
+  "name": "izmir-ulasim-mcp",
+  "version": "1.0.1",
+  "description": "İzmir toplu taşıma verilerine erişim sağlayan bir Model Bağlam Protokolü (MCP) sunucusu, AI asistanlarının şehir ulaşım verilerini ve analizlerini sorgulamasına olanak tanır.",
+  "main": "index.js",
+  "bin": {
+    "izmir-ulasim-mcp": "./index.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ogulcanakca/izmir-ulasim-mcp.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ogulcanakca/izmir-ulasim-mcp/issues"
+  },
+  "homepage": "https://github.com/ogulcanakca/izmir-ulasim-mcp#readme"
+}
