@@ -1,8 +1,11 @@
 #!/usr/bin/env node
 
+const path = require('path');
 const { spawn } = require('child_process');
 
-const pythonProcess = spawn('python', ['izmir_ulasim_main.py'], {
+const pythonScriptPath = path.join(__dirname, 'izmir_ulasim_main.py');
+
+const pythonProcess = spawn('python', [pythonScriptPath], {
     stdio: 'inherit'
 });
 
