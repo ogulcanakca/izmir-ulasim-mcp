@@ -15,7 +15,9 @@
     "files/"
   ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "release": "standard-version"
   },
   "repository": {
     "type": "git",
@@ -27,5 +29,8 @@
   "bugs": {
     "url": "https://github.com/ogulcanakca/izmir-ulasim-mcp/issues"
   },
-  "homepage": "https://github.com/ogulcanakca/izmir-ulasim-mcp#readme"
+  "homepage": "https://github.com/ogulcanakca/izmir-ulasim-mcp#readme",
+  "devDependencies": {
+    "standard-version": "^9.5.0"
+  }
 }
