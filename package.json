@@ -1,6 +1,6 @@
 {
   "name": "izmir-ulasim-mcp",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "İzmir toplu taşıma verilerine erişim sağlayan bir Model Bağlam Protokolü (MCP) sunucusu, AI asistanlarının şehir ulaşım verilerini ve analizlerini sorgulamasına olanak tanır.",
   "main": "index.js",
   "bin": {
