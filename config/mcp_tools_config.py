@@ -3,7 +3,6 @@ IZTEK_BASE_URL = "https://openapi.izmir.bel.tr/api/iztek"
 ACIKVERI_BASE_URL = "https://acikveri.bizizmir.com/tr/api/3/action"
 
 # Kaynak ID'leri
-DURAK_ARAMA_RESOURCE_ID = "0c791266-a2e4-4f14-82b8-9a9b102fbf94"
 HAT_ARAMA_RESOURCE_ID = "bd6c84f8-49ba-4cf4-81f8-81a0fbb5caa3"
 HAT_DETAYLARI_RESOURCE_ID = "81138188-9e50-476d-a1d0-d069e3ec3878"
 

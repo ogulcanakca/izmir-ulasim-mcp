@@ -4,9 +4,9 @@ import json
 from typing import List, Dict, Any, Optional, Tuple
 import pandas as pd
 import os
-import pyarrow 
 import urllib.request
 import ssl
+import numpy as np
 
 from mcp.server.fastmcp import FastMCP
 
@@ -72,12 +72,13 @@ def load_or_process_stops_data(
     try:
         logger.info(f"İndirilen ham durak verisi '{raw_csv_path}' işleniyor...")
         
-        df = pd.read_csv(raw_csv_path, delimiter=';') 
+        df = pd.read_csv(raw_csv_path, delimiter=';', decimal=',') 
 
-        df['ENLEM'] = df['ENLEM'].astype(str).str.replace('.', '', regex=False).str.replace(',', '.')
-        df['BOYLAM'] = df['BOYLAM'].astype(str).str.replace('.', '', regex=False).str.replace(',', '.')
+        # Sütunları doğrudan sayısal türe dönüştür, hatalı olanları NaN yap
         df['ENLEM'] = pd.to_numeric(df['ENLEM'], errors='coerce')
         df['BOYLAM'] = pd.to_numeric(df['BOYLAM'], errors='coerce')
+
+        df = df.dropna(subset=['ENLEM', 'BOYLAM'])
 
         df.to_parquet(processed_parquet_path, index=False)
         logger.info(f"Temizlenmiş durak verisi '{processed_parquet_path}' olarak başarıyla kaydedildi.")
@@ -110,7 +111,7 @@ def load_or_process_route_coords_data(
     try:
         logger.info(f"İndirilen ham güzergah koordinat verisi '{raw_csv_path}' işleniyor...")
         
-        df = pd.read_csv(raw_csv_path, delimiter=';') 
+        df = pd.read_csv(raw_csv_path, delimiter=';', decimal=',') 
         logger.info(f"CSV başarıyla okundu. '{os.path.basename(raw_csv_path)}' dosyasındaki sütunlar: {df.columns.tolist()}")
         logger.info(f"CSV'den okunan ilk 5 satır:\n{df.head().to_string()}")
 
@@ -123,8 +124,7 @@ def load_or_process_route_coords_data(
 
         df['SIRA'] = df.index
 
-        df['ENLEM'] = df['ENLEM'].astype(str).str.replace('.', '', regex=False).str.replace(',', '.')
-        df['BOYLAM'] = df['BOYLAM'].astype(str).str.replace('.', '', regex=False).str.replace(',', '.')
+        # Sütunları doğrudan sayısal türe dönüştür, hatalı olanları NaN yap
         df['ENLEM'] = pd.to_numeric(df['ENLEM'], errors='coerce')
         df['BOYLAM'] = pd.to_numeric(df['BOYLAM'], errors='coerce')
         df['HAT_NO'] = pd.to_numeric(df['HAT_NO'], errors='coerce')
@@ -387,6 +387,52 @@ def hat_detaylarini_ara(hat_bilgisi: str, limit: int = 5) -> Optional[List[Dict[
         query=hat_bilgisi,
         limit=limit
     )
+
+# --- Tool 9: Konuma Göre En Yakın Durakları Bulma ---
+@mcp.tool()
+def en_yakin_duraklari_bul(latitude: float, longitude: float, limit: int = 3) -> Optional[List[Dict[str, Any]]]:
+    """
+    Verilen enlem ve boylama en yakın otobüs duraklarını bulur.
+    Uzaklıkları Haversine formülü kullanarak kilometre cinsinden hesaplar.
+
+    Args:
+        latitude (float): Mevcut konumun enlemi.
+        longitude (float): Mevcut konumun boylamı.
+        limit (int): Döndürülecek maksimum durak sayısı.
+
+    Returns:
+        En yakın durakların bilgilerini ve mesafeyi içeren bir liste.
+    """
+    if stops_df is None or stops_df.empty:
+        logger.error("Durak verileri yüklenemediği için en yakın durak araması yapılamıyor.")
+        return [{"hata": "Durak veritabanı hazır değil."}]
+
+    # Dünya yarıçapı (km)
+    R = 6371.0
+
+    df = stops_df.copy()
+
+    # Verilen koordinatları ve DataFrame'deki koordinatları radyana çevir
+    lat1_rad = np.radians(latitude)
+    lon1_rad = np.radians(longitude)
+    lat2_rad = np.radians(df['ENLEM'])
+    lon2_rad = np.radians(df['BOYLAM'])
+
+    # Koordinat farkları
+    dlon = lon2_rad - lon1_rad
+    dlat = lat2_rad - lat1_rad
+
+    # Haversine formülünü uygula
+    a = np.sin(dlat / 2)**2 + np.cos(lat1_rad) * np.cos(lat2_rad) * np.sin(dlon / 2)**2
+    c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1 - a))
+    distance_km = R * c
+
+    df['mesafe_km'] = distance_km
+
+    # Sonuçları mesafeye göre sırala ve limiti uygula
+    nearest_stops = df.sort_values(by='mesafe_km').head(limit)
+
+    return nearest_stops.to_dict('records')
 
 if __name__ == "__main__":
     mcp.run(transport="stdio")
