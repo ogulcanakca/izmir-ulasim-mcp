@@ -9,6 +9,7 @@ authors = [
 ]
 dependencies = [
     "fastmcp>=2.8.0",
+    "flask>=3.1.1",
     "mcp-cli>=0.1.0",
     "numpy>=2.3.0",
     "pandas>=2.3.0",

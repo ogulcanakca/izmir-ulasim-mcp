@@ -7,6 +7,10 @@ import os
 import urllib.request
 import ssl
 import numpy as np
+from flask import Flask, render_template_string, request, jsonify
+import webbrowser
+from threading import Timer, Event, Thread
+from contextlib import redirect_stdout, redirect_stderr
 
 from mcp.server.fastmcp import FastMCP
 
@@ -17,7 +21,8 @@ from config.mcp_tools_config import (
     HAT_DETAYLARI_RESOURCE_ID,
     SEFER_SAATLERI_CSV_URL,
     DURAKLAR_CSV_URL,
-    HAT_GUZERGAH_KOORDINATLARI_CSV_URL
+    HAT_GUZERGAH_KOORDINATLARI_CSV_URL,
+    HTML_TEMPLATE_FOR_LOCATION
 )
 
 logging.basicConfig(
@@ -74,7 +79,6 @@ def load_or_process_stops_data(
         
         df = pd.read_csv(raw_csv_path, delimiter=';', decimal=',') 
 
-        # Sütunları doğrudan sayısal türe dönüştür, hatalı olanları NaN yap
         df['ENLEM'] = pd.to_numeric(df['ENLEM'], errors='coerce')
         df['BOYLAM'] = pd.to_numeric(df['BOYLAM'], errors='coerce')
 
@@ -124,7 +128,6 @@ def load_or_process_route_coords_data(
 
         df['SIRA'] = df.index
 
-        # Sütunları doğrudan sayısal türe dönüştür, hatalı olanları NaN yap
         df['ENLEM'] = pd.to_numeric(df['ENLEM'], errors='coerce')
         df['BOYLAM'] = pd.to_numeric(df['BOYLAM'], errors='coerce')
         df['HAT_NO'] = pd.to_numeric(df['HAT_NO'], errors='coerce')
@@ -208,26 +211,36 @@ def hattin_anlik_otobus_konumlarini_getir(line_id: int) -> Optional[List[Dict[st
 def hattin_duraga_yaklasan_otobuslerini_getir(line_id: int, stop_id: int) -> Optional[List[Dict[str, Any]]]:
     """
     Belirtilen bir hattın, belirtilen durağa yaklaşmakta olan otobüslerini getirir.
-
-    Args:
-        line_id (int): Hat numarası (ID'si).
-        stop_id (int): Durak numarası (ID'si).
-
-    Returns:
-        Otobüs bilgilerini içeren bir liste veya hata durumunda None.
+    Hata durumunda açıklayıcı bir JSON mesajı döner.
     """
     url = f"{IZTEK_BASE_URL}/hattinyaklasanotobusleri/{line_id}/{stop_id}"
     try:
         response = requests.get(url)
+        
         if response.status_code == 200:
             return response.json()
-        elif response.status_code == 204:
-            return []
-        response.raise_for_status()
+        if response.status_code == 204:
+            return [] 
+
+        elif response.status_code == 404:
+            logger.error(f"API Hatası (404): Hat ID '{line_id}' veya Durak ID '{stop_id}' bulunamadı.")
+            return {
+                "hata": "GEÇERSİZ_ID",
+                "mesaj": f"API'de '{line_id}' numaralı hat veya '{stop_id}' numaralı durak bulunamadı. Lütfen ID'leri kontrol edin."
+            }
+        else:
+            logger.error(f"API Hatası ({response.status_code}): Beklenmedik durum.")
+            return {
+                "hata": "API_YANIT_HATASI",
+                "mesaj": f"API'den beklenmedik bir durum kodu ({response.status_code}) alındı."
+            }
+            
     except requests.exceptions.RequestException as e:
         logger.error(f"API isteği sırasında hata (hattinyaklasanotobusleri): {e}")
-        return None
-    return None
+        return {
+            "hata": "AĞ_HATASI",
+            "mesaj": f"API'ye bağlanırken bir ağ hatası oluştu: {e}"
+        }
 
 # --- ACIKVERI API için Genel Arama Fonksiyonu ---
 def _search_acikveri(
@@ -289,19 +302,36 @@ def durak_ara(durak_adi: str, limit: int = 5) -> Optional[List[Dict[str, Any]]]:
 def hat_ara(hat_bilgisi: str, limit: int = 5) -> Optional[List[Dict[str, Any]]]:
     """
     Adında veya güzergahında belirtilen metin geçen otobüs hatlarını arar.
+    Sonuç olarak, diğer araçlarda 'line_id' olarak kullanılabilecek 'hat_id' bilgisini de döndürür.
 
     Args:
         hat_bilgisi (str): Aranacak hat adı, numarası veya güzergah bilgisi.
         limit (int): Döndürülecek maksimum sonuç sayısı.
 
     Returns:
-        Hat bilgilerini içeren kayıtların listesi.
+        Hat bilgilerini ve 'hat_id' içeren kayıtların listesi.
     """
-    return _search_acikveri(
+    raw_results = _search_acikveri(
         resource_id=HAT_ARAMA_RESOURCE_ID,
         query=hat_bilgisi,
         limit=limit
     )
+
+    if not raw_results:
+        return [] 
+    
+    processed_results = []
+    for record in raw_results:
+        if 'HAT_NO' in record:
+            clean_record = {
+                'hat_no': record.get('HAT_NO'),
+                'hat_adi': record.get('ADI'),
+                'guzergah': record.get('GUZERGAH'),
+                'hat_id_for_iztek_api': record.get('HAT_NO') 
+            }
+            processed_results.append(clean_record)
+    
+    return processed_results
 
 # --- Tool 6: Hat Sefer Saati Arama ---
 def _indir_ve_cache_le_sefer_saatleri_csv() -> Optional[str]:
@@ -407,32 +437,86 @@ def en_yakin_duraklari_bul(latitude: float, longitude: float, limit: int = 3) ->
         logger.error("Durak verileri yüklenemediği için en yakın durak araması yapılamıyor.")
         return [{"hata": "Durak veritabanı hazır değil."}]
 
-    # Dünya yarıçapı (km)
     R = 6371.0
 
     df = stops_df.copy()
 
-    # Verilen koordinatları ve DataFrame'deki koordinatları radyana çevir
     lat1_rad = np.radians(latitude)
     lon1_rad = np.radians(longitude)
     lat2_rad = np.radians(df['ENLEM'])
     lon2_rad = np.radians(df['BOYLAM'])
 
-    # Koordinat farkları
     dlon = lon2_rad - lon1_rad
     dlat = lat2_rad - lat1_rad
 
-    # Haversine formülünü uygula
     a = np.sin(dlat / 2)**2 + np.cos(lat1_rad) * np.cos(lat2_rad) * np.sin(dlon / 2)**2
     c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1 - a))
     distance_km = R * c
 
     df['mesafe_km'] = distance_km
 
-    # Sonuçları mesafeye göre sırala ve limiti uygula
     nearest_stops = df.sort_values(by='mesafe_km').head(limit)
 
     return nearest_stops.to_dict('records')
+
+# --- Tool 10: Tarayıcıdan Hassas Konum Alma ---
+@mcp.tool()
+def konumumu_al() -> str:
+    """
+    Kullanıcının hassas coğrafi konumunu almak için yerel bir web sunucusu başlatır.
+    Tarayıcıda bir sayfa açar, kullanıcıdan konum izni ister ve alınan koordinatları
+    metin olarak döndürür. Bu araç, diğer konum tabanlı araçlarla kullanılabilir.
+    """
+    location_result = {}
+    location_received_event = Event()
+    app = Flask(__name__)
+
+    log = logging.getLogger('werkzeug')
+    log.setLevel(logging.ERROR)
+    log.disabled = True
+    app.logger.disabled = True
+
+    @app.route('/')
+    def _index():
+        return render_template_string(HTML_TEMPLATE_FOR_LOCATION)
+
+    @app.route('/location', methods=['POST'])
+    def _receive_location():
+        data = request.get_json()
+        if data and 'latitude' in data and 'longitude' in data:
+            location_result['latitude'] = data['latitude']
+            location_result['longitude'] = data['longitude']
+            logger.info(f"Tarayıcıdan konum alındı: {data}")
+            location_received_event.set()
+            # Sunucuyu kapatmak için bir fonksiyon ekleyelim.
+            request.environ.get('werkzeug.server.shutdown')()
+            return jsonify({"status": "success"}), 200
+        return jsonify({"status": "error", "message": "Eksik veri"}), 400
+
+    def open_browser():
+        webbrowser.open_new("http://127.0.0.1:5000/")
+
+    def run_server():
+        with open(os.devnull, 'w') as f, redirect_stdout(f), redirect_stderr(f):
+            app.run(port=5000, debug=False, use_reloader=False)
+
+    server_thread = Thread(target=run_server)
+    server_thread.daemon = True
+    server_thread.start()
+
+    logger.info("Konum alma servisi başlatılıyor. Tarayıcı açılacak...")
+    Timer(1, open_browser).start()
+
+    received = location_received_event.wait(timeout=60.0)
+
+    if received and 'latitude' in location_result:
+        lat = location_result['latitude']
+        lon = location_result['longitude']
+        return f"Konum başarıyla alındı. Enlem: {lat}, Boylam: {lon}. Bu bilgiyi 'en_yakin_duraklari_bul' gibi araçlarda kullanabilirsiniz."
+    else:
+        logger.warning("Konum alma zaman aşımına uğradı veya izin verilmedi.")
+        return "Konum alınamadı. İşlem 60 saniye içinde zaman aşımına uğradı veya tarayıcıda izin verilmedi."
+
 
 if __name__ == "__main__":
     mcp.run(transport="stdio")

@@ -1,17 +1,12 @@
-# API Adresleri
-IZTEK_BASE_URL = "https://openapi.izmir.bel.tr/api/iztek"
-ACIKVERI_BASE_URL = "https://acikveri.bizizmir.com/tr/api/3/action"
+from flask import Flask, render_template_string, request, jsonify
+import webbrowser
+from threading import Timer
 
-# Kaynak ID'leri
-HAT_ARAMA_RESOURCE_ID = "bd6c84f8-49ba-4cf4-81f8-81a0fbb5caa3"
-HAT_DETAYLARI_RESOURCE_ID = "81138188-9e50-476d-a1d0-d069e3ec3878"
+app = Flask(__name__)
 
-# CSV Veri Kaynakları
-SEFER_SAATLERI_CSV_URL = "https://openfiles.izmir.bel.tr/211488/docs/eshot-otobus-hareketsaatleri.csv"
-DURAKLAR_CSV_URL = "https://openfiles.izmir.bel.tr/211488/docs/eshot-otobus-duraklari.csv"
-HAT_GUZERGAH_KOORDINATLARI_CSV_URL = "https://openfiles.izmir.bel.tr/211488/docs/eshot-otobus-hat-guzergahlari.csv" 
-
-HTML_TEMPLATE_FOR_LOCATION = """
+# Ayrı bir HTML dosyası yerine, HTML içeriğini doğrudan Python koduna gömüyoruz.
+# Bu, tek dosyada çalışmayı kolaylaştırır.
+HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -59,33 +54,65 @@ HTML_TEMPLATE_FOR_LOCATION = """
                 <b>Doğruluk:</b> ${acc.toFixed(2)} metre
             `;
 
-            // Konumu Python'daki Flask sunucusuna gönder ve pencereyi kapat
+            // Konumu Python'daki Flask sunucusuna gönder
             fetch('/location', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ latitude: lat, longitude: lon })
-            }).then(() => {
-                locationDiv.textContent = "Konum alındı, bu pencereyi kapatabilirsiniz.";
             });
         }
 
         function showError(error) {
             const locationDiv = document.getElementById('location-data');
-            let message = "Bilinmeyen bir hata oluştu.";
             switch(error.code) {
                 case error.PERMISSION_DENIED:
-                    message = "Kullanıcı konum iznini reddetti."
+                    locationDiv.textContent = "Kullanıcı konum iznini reddetti."
                     break;
                 case error.POSITION_UNAVAILABLE:
-                    message = "Konum bilgisi mevcut değil."
+                    locationDiv.textContent = "Konum bilgisi mevcut değil."
                     break;
                 case error.TIMEOUT:
-                    message = "Konum alma isteği zaman aşımına uğradı."
+                    locationDiv.textContent = "Konum alma isteği zaman aşımına uğradı."
+                    break;
+                case error.UNKNOWN_ERROR:
+                    locationDiv.textContent = "Bilinmeyen bir hata oluştu."
                     break;
             }
-            locationDiv.textContent = message;
         }
     </script>
 </body>
 </html>
 """
+
+@app.route('/')
+def index():
+    """Ana sayfayı oluşturur."""
+    return render_template_string(HTML_TEMPLATE)
+
+@app.route('/location', methods=['POST'])
+def receive_location():
+    """Tarayıcıdan gelen konum verisini alır ve terminale yazdırır."""
+    data = request.get_json()
+    latitude = data.get('latitude')
+    longitude = data.get('longitude')
+    
+    if latitude and longitude:
+        print("\n" + "="*50)
+        print("✅ Tarayıcıdan Hassas Konum Alındı!")
+        print(f"   Enlem (Latitude):   {latitude}")
+        print(f"   Boylam (Longitude): {longitude}")
+        print("="*50 + "\n")
+        return jsonify({"status": "success"}), 200
+    
+    return jsonify({"status": "error", "message": "Eksik veri"}), 400
+
+def open_browser():
+      webbrowser.open_new("http://127.0.0.1:5000/")
+
+if __name__ == "__main__":
+    print("Web sunucusu başlatıldı. Tarayıcınızda açılıyor...")
+    print("Hassas konumu almak için açılan web sayfasındaki butona tıklayın.")
+    print("Sunucuyu durdurmak için terminalde CTRL+C tuşlarına basın.")
+    # Sunucu başladıktan 1 saniye sonra tarayıcıyı aç
+    Timer(1, open_browser).start()
+    app.run(port=5000, debug=False)
