@@ -9,4 +9,5 @@ HAT_GUZERGAH_KOORDINATLARI_RESOURCE_ID = "543f2249-c734-48e4-8739-72efbbfc843c"
 HAT_DETAYLARI_RESOURCE_ID = "81138188-9e50-476d-a1d0-d069e3ec3878"
 
 # CSV Veri Kaynakları
-SEFER_SAATLERI_CSV_URL = "https://openfiles.izmir.bel.tr/211488/docs/eshot-otobus-hareketsaatleri.csv" 
+SEFER_SAATLERI_CSV_URL = "https://openfiles.izmir.bel.tr/211488/docs/eshot-otobus-hareketsaatleri.csv"
+DURAKLAR_CSV_URL = "https://openfiles.izmir.bel.tr/211488/docs/eshot-otobus-duraklari.csv" 
