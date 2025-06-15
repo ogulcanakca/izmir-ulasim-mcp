@@ -18,6 +18,8 @@ Bu MCP sunucusu, aşağıdaki araçları (tool) içermektedir:
 * **`hat_sefer_saatlerini_ara(hat_no)`**: Belirtilen hat numarasına göre otobüs sefer saatlerini arar.
 * **`hat_guzergah_koordinatlarini_getir(hat_no)`**: Belirtilen hat numarasına ait güzergahın koordinat (enlem/boylam) bilgilerini getirir.
 * **`hat_detaylarini_ara(hat_bilgisi)`**: Adında veya güzergahında belirtilen metni içeren hatların çalışma saatleri gibi detaylı bilgilerini arar.
+* **`en_yakin_duraklari_bul(latitude, longitude)`**: Verilen enlem ve boylama en yakın otobüs duraklarını bulur.
+* **`konumumu_al()`**: Tarayıcı üzerinden kullanıcının hassas coğrafi konumunu alır.
 
 ## Kurulum ve Kullanım
 
@@ -28,6 +30,8 @@ Bu MCP sunucusu, aşağıdaki araçları (tool) içermektedir:
 * `mcp-cli` 
 * `fastmcp` 
 * `pandas`
+* `numpy`
+* `flask`
 
 ### Kurulum
 1.  **Projeyi klonlayın veya indirin:**
@@ -99,4 +103,3 @@ Bu proje, İzmir'in ulaşım verilerini daha erişilebilir kılmak için bir ba�
 
 ### 3. Kullanıcı Deneyimi ve Zeka
 - **Kişiselleştirme ve Hafıza:** Asistanın, kullanıcının sık kullandığı "ev", "iş" gibi konumları veya favori hatlarını öğrenerek daha kişisel yanıtlar vermesini sağlamak.
-- **Esnek Girdi Anlama:** "Fahretin altay" gibi hatalı yazılmış veya "Ege üniversitesi hastanesi yakınındaki durak" gibi daha serbest ifadeleri anlayıp doğru sorguyu oluşturabilen bir mantık geliştirmek.
