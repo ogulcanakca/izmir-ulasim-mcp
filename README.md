@@ -86,6 +86,7 @@ veya npm ile oluşturmak isterseniz:
 ## Örnek Kullanım
 
 ![ornek-sorgular](assets/ornek-sorgular.png)
+![ornek-sorgu_ek1](assets/ornek_sorgu_ek1.png)
 
 ## Gelecek Çalışmaları
 
