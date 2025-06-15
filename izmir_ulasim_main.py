@@ -13,15 +13,20 @@ from mcp.server.fastmcp import FastMCP
 from config.mcp_tools_config import (
     IZTEK_BASE_URL,
     ACIKVERI_BASE_URL,
-    DURAK_ARAMA_RESOURCE_ID,
     HAT_ARAMA_RESOURCE_ID,
-    HAT_GUZERGAH_KOORDINATLARI_RESOURCE_ID,
     HAT_DETAYLARI_RESOURCE_ID,
     SEFER_SAATLERI_CSV_URL,
-    DURAKLAR_CSV_URL
+    DURAKLAR_CSV_URL,
+    HAT_GUZERGAH_KOORDINATLARI_CSV_URL
 )
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    filename='mcp.log',
+    filemode='w',
+    force=True,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 mcp = FastMCP("izmir_ulasim")
@@ -86,7 +91,62 @@ def load_or_process_stops_data(
         logger.error(f"Ham durak dosyası ('{raw_csv_path}') işlenirken genel bir hata oluştu: {e}")
         return None
 
+def load_or_process_route_coords_data(
+    raw_csv_filename='eshot-otobus-hat-guzergahlari.csv',
+    processed_parquet_filename='processed_route_coords.parquet'
+) -> Optional[pd.DataFrame]:
+    """
+    Güzergah koordinat verilerini her zaman güncel CSV'den indirir, işler,
+    Parquet olarak kaydeder ve sonucu döndürür.
+    """
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    raw_csv_path = os.path.join(script_dir, 'data', raw_csv_filename)
+    processed_parquet_path = os.path.join(script_dir, 'data', processed_parquet_filename)
+
+    if not _download_csv(HAT_GUZERGAH_KOORDINATLARI_CSV_URL, raw_csv_path):
+        logger.error(f"Güzergah koordinatları CSV dosyası indirilemediği için veri yüklenemedi.")
+        return None
+
+    try:
+        logger.info(f"İndirilen ham güzergah koordinat verisi '{raw_csv_path}' işleniyor...")
+        
+        df = pd.read_csv(raw_csv_path, delimiter=';') 
+        logger.info(f"CSV başarıyla okundu. '{os.path.basename(raw_csv_path)}' dosyasındaki sütunlar: {df.columns.tolist()}")
+        logger.info(f"CSV'den okunan ilk 5 satır:\n{df.head().to_string()}")
+
+        required_cols = ['HAT_NO', 'ENLEM', 'BOYLAM']
+        if not all(col in df.columns for col in required_cols):
+            logger.error(f"HATA: Güzergah CSV dosyasında beklenen sütunlar bulunamadı.")
+            logger.error(f"Beklenen Sütunlar: {required_cols}")
+            logger.error(f"Dosyadaki Sütunlar: {df.columns.tolist()}")
+            return None
+
+        df['SIRA'] = df.index
+
+        df['ENLEM'] = df['ENLEM'].astype(str).str.replace('.', '', regex=False).str.replace(',', '.')
+        df['BOYLAM'] = df['BOYLAM'].astype(str).str.replace('.', '', regex=False).str.replace(',', '.')
+        df['ENLEM'] = pd.to_numeric(df['ENLEM'], errors='coerce')
+        df['BOYLAM'] = pd.to_numeric(df['BOYLAM'], errors='coerce')
+        df['HAT_NO'] = pd.to_numeric(df['HAT_NO'], errors='coerce')
+
+        df = df.dropna(subset=['HAT_NO', 'ENLEM', 'BOYLAM'])
+        df['HAT_NO'] = df['HAT_NO'].astype(int)
+        df['SIRA'] = df['SIRA'].astype(int)
+
+        df.to_parquet(processed_parquet_path, index=False)
+        logger.info(f"Temizlenmiş güzergah koordinat verisi '{processed_parquet_path}' olarak başarıyla kaydedildi.")
+
+        return df
+        
+    except FileNotFoundError:
+        logger.error(f"HATA: Ham veri dosyası '{raw_csv_path}' konumunda bulunamadı!")
+        return None
+    except Exception as e:
+        logger.error(f"Ham güzergah koordinat dosyası ('{raw_csv_path}') işlenirken genel bir hata oluştu: {e}", exc_info=True)
+        return None
+
 stops_df = load_or_process_stops_data()
+route_coords_df = load_or_process_route_coords_data()
 
 # --- Tool 1: Durağa Yaklaşan Tüm Otobüsler ---
 @mcp.tool()
@@ -300,12 +360,13 @@ def hat_guzergah_koordinatlarini_getir(hat_no: int, limit: int = 250) -> Optiona
     Returns:
         Güzergah koordinatlarını içeren kayıtların listesi.
     """
-    filters = {'HAT_NO': str(hat_no)}
-    return _search_acikveri(
-        resource_id=HAT_GUZERGAH_KOORDINATLARI_RESOURCE_ID,
-        filters=filters,
-        limit=limit
-    )
+    if route_coords_df is None:
+        logger.error("Güzergah koordinat verileri yüklenemediği için arama yapılamıyor.")
+        return [{"hata": "Güzergah koordinatları veritabanı hazır değil."}]
+
+    results_df = route_coords_df[route_coords_df['HAT_NO'] == hat_no].sort_values('SIRA').head(limit)
+
+    return results_df.to_dict('records')
 
 # --- Tool 8: Hat Detaylarını Ara ---
 @mcp.tool()
