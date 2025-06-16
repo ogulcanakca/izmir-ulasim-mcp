@@ -9,7 +9,8 @@ HAT_DETAYLARI_RESOURCE_ID = "81138188-9e50-476d-a1d0-d069e3ec3878"
 # CSV Veri Kaynakları
 SEFER_SAATLERI_CSV_URL = "https://openfiles.izmir.bel.tr/211488/docs/eshot-otobus-hareketsaatleri.csv"
 DURAKLAR_CSV_URL = "https://openfiles.izmir.bel.tr/211488/docs/eshot-otobus-duraklari.csv"
-HAT_GUZERGAH_KOORDINATLARI_CSV_URL = "https://openfiles.izmir.bel.tr/211488/docs/eshot-otobus-hat-guzergahlari.csv" 
+HAT_GUZERGAH_KOORDINATLARI_CSV_URL = "https://openfiles.izmir.bel.tr/211488/docs/eshot-otobus-hat-guzergahlari.csv"
+IZBAN_ISTASYONLAR_CSV_URL = "https://acikveri.bizizmir.com/dataset/e3854620-a776-47d4-a63c-9180fc1d4e9e/resource/df6ec7bf-5e75-4f89-9d60-e8da7319517c/download/izban-istasyonlar.csv"
 
 HTML_TEMPLATE_FOR_LOCATION = """
 <!DOCTYPE html>

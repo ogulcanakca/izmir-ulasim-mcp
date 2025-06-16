@@ -22,6 +22,7 @@ from config.mcp_tools_config import (
     SEFER_SAATLERI_CSV_URL,
     DURAKLAR_CSV_URL,
     HAT_GUZERGAH_KOORDINATLARI_CSV_URL,
+    IZBAN_ISTASYONLAR_CSV_URL,
     HTML_TEMPLATE_FOR_LOCATION
 )
 
@@ -148,8 +149,47 @@ def load_or_process_route_coords_data(
         logger.error(f"Ham güzergah koordinat dosyası ('{raw_csv_path}') işlenirken genel bir hata oluştu: {e}", exc_info=True)
         return None
 
+def load_or_process_izban_stations_data(
+    raw_csv_filename='izban-istasyonlar.csv',
+    processed_parquet_filename='processed_izban_stations.parquet'
+) -> Optional[pd.DataFrame]:
+    """
+    İZBAN istasyon verilerini her zaman güncel CSV'den indirir, işler,
+    Parquet olarak kaydeder ve sonucu döndürür.
+    """
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    raw_csv_path = os.path.join(script_dir, 'data', raw_csv_filename)
+    processed_parquet_path = os.path.join(script_dir, 'data', processed_parquet_filename)
+
+    if not _download_csv(IZBAN_ISTASYONLAR_CSV_URL, raw_csv_path):
+        logger.error(f"İZBAN istasyon CSV dosyası indirilemediği için veri yüklenemedi.")
+        return None
+
+    try:
+        logger.info(f"İndirilen ham İZBAN istasyon verisi '{raw_csv_path}' işleniyor...")
+        
+        df = pd.read_csv(raw_csv_path, delimiter=';') 
+
+        df['ENLEM'] = pd.to_numeric(df['ENLEM'], errors='coerce')
+        df['BOYLAM'] = pd.to_numeric(df['BOYLAM'], errors='coerce')
+
+        df = df.dropna(subset=['ENLEM', 'BOYLAM'])
+
+        df.to_parquet(processed_parquet_path, index=False)
+        logger.info(f"Temizlenmiş İZBAN istasyon verisi '{processed_parquet_path}' olarak başarıyla kaydedildi.")
+
+        return df
+        
+    except FileNotFoundError:
+        logger.error(f"HATA: Ham veri dosyası '{raw_csv_path}' konumunda bulunamadı!")
+        return None
+    except Exception as e:
+        logger.error(f"Ham İZBAN istasyon dosyası ('{raw_csv_path}') işlenirken genel bir hata oluştu: {e}")
+        return None
+
 stops_df = load_or_process_stops_data()
 route_coords_df = load_or_process_route_coords_data()
+izban_stations_df = load_or_process_izban_stations_data()
 
 # --- Tool 1: Durağa Yaklaşan Tüm Otobüsler ---
 @mcp.tool()
@@ -297,7 +337,58 @@ def durak_ara(durak_adi: str, limit: int = 5) -> Optional[List[Dict[str, Any]]]:
     return results_df.to_dict('records')
 
 
-# --- Tool 5: Otobüs Hattı Arama ---
+# --- Tool 5: İZBAN İstasyon Arama ---
+@mcp.tool()
+def izban_istasyon_ara(istasyon_adi: str, limit: int = 5) -> Optional[List[Dict[str, Any]]]:
+    """
+    Adında belirtilen metin geçen İZBAN istasyonlarını arar.
+
+    Args:
+        istasyon_adi (str): Aranacak istasyon adı veya bir kısmı.
+        limit (int): Döndürülecek maksimum sonuç sayısı.
+
+    Returns:
+        İstasyon bilgilerini içeren kayıtların listesi.
+    """
+    if izban_stations_df is None:
+        logger.error("İZBAN istasyon verileri yüklenemediği için istasyon araması yapılamıyor.")
+        return [{"hata": "İZBAN istasyon veritabanı hazır değil."}]
+
+    results_df = izban_stations_df[izban_stations_df['ISTASYON_ADI'].str.contains(istasyon_adi, case=False, na=False)].head(limit)
+
+    return results_df.to_dict('records')
+
+
+# --- Tool 6: İZBAN Sefer Saatlerini Getir ---
+@mcp.tool()
+def izban_sefer_saatlerini_getir(kalkis_istasyon_id: int, varis_istasyon_id: int) -> Optional[List[Dict[str, Any]]]:
+    """
+    Belirtilen iki İZBAN istasyonu arasındaki sefer saatlerini getirir.
+    İstasyon ID'lerini bulmak için `izban_istasyon_ara` aracı kullanılabilir.
+
+    Args:
+        kalkis_istasyon_id (int): Kalkış istasyonunun ID'si.
+        varis_istasyon_id (int): Varış istasyonunun ID'si.
+
+    Returns:
+        Sefer saati bilgilerini içeren bir liste veya hata durumunda None.
+    """
+    url = f"https://openapi.izmir.bel.tr/api/izban/sefersaatleri/{kalkis_istasyon_id}/{varis_istasyon_id}"
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            return response.json()
+        elif response.status_code == 204: # No content
+            logger.info(f"'{kalkis_istasyon_id}' ve '{varis_istasyon_id}' arasında sefer bulunamadı.")
+            return [] 
+        response.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        logger.error(f"İZBAN sefer saatleri API isteği sırasında hata: {e}")
+        return None
+    return None
+
+
+# --- Tool 7: Otobüs Hattı Arama ---
 @mcp.tool()
 def hat_ara(hat_bilgisi: str, limit: int = 5) -> Optional[List[Dict[str, Any]]]:
     """
@@ -333,7 +424,7 @@ def hat_ara(hat_bilgisi: str, limit: int = 5) -> Optional[List[Dict[str, Any]]]:
     
     return processed_results
 
-# --- Tool 6: Hat Sefer Saati Arama ---
+# --- Tool 8: Hat Sefer Saati Arama ---
 def _indir_ve_cache_le_sefer_saatleri_csv() -> Optional[str]:
     """
     Sefer saatleri CSV dosyasını indirir ve yerel bir kopyasını oluşturur.
@@ -376,7 +467,7 @@ def hat_sefer_saatlerini_ara(hat_no: int, limit: int = 50) -> Optional[List[Dict
         logger.error(f"Sefer saatleri CSV dosyası okunurken hata oluştu: {e}")
         return [{"hata": f"Sefer saatleri dosyası işlenirken bir hata oluştu: {e}"}]
 
-# --- Tool 7: Hat Güzergah Koordinatlarını Getir ---
+# --- Tool 9: Hat Güzergah Koordinatlarını Getir ---
 @mcp.tool()
 def hat_guzergah_koordinatlarini_getir(hat_no: int, limit: int = 250) -> Optional[List[Dict[str, Any]]]:
     """
@@ -398,7 +489,7 @@ def hat_guzergah_koordinatlarini_getir(hat_no: int, limit: int = 250) -> Optiona
 
     return results_df.to_dict('records')
 
-# --- Tool 8: Hat Detaylarını Ara ---
+# --- Tool 10: Hat Detaylarını Ara ---
 @mcp.tool()
 def hat_detaylarini_ara(hat_bilgisi: str, limit: int = 5) -> Optional[List[Dict[str, Any]]]:
     """
@@ -418,33 +509,69 @@ def hat_detaylarini_ara(hat_bilgisi: str, limit: int = 5) -> Optional[List[Dict[
         limit=limit
     )
 
-# --- Tool 9: Konuma Göre En Yakın Durakları Bulma ---
+# --- Tool 11: Konuma Göre En Yakın Durakları Bulma ---
 @mcp.tool()
-def en_yakin_duraklari_bul(latitude: float, longitude: float, limit: int = 3) -> Optional[List[Dict[str, Any]]]:
+def en_yakin_duraklari_bul(latitude: float, longitude: float, limit: int = 5, tur: Optional[str] = None) -> Optional[List[Dict[str, Any]]]:
     """
-    Verilen enlem ve boylama en yakın otobüs duraklarını bulur.
+    Verilen enlem ve boylama en yakın otobüs duraklarını veya İZBAN istasyonlarını bulur.
+    `tur` parametresi ile sadece belirli bir türdeki yerleri arayabilir.
     Uzaklıkları Haversine formülü kullanarak kilometre cinsinden hesaplar.
 
     Args:
         latitude (float): Mevcut konumun enlemi.
         longitude (float): Mevcut konumun boylamı.
-        limit (int): Döndürülecek maksimum durak sayısı.
+        limit (int): Döndürülecek maksimum durak/istasyon sayısı.
+        tur (str, optional): Aranacak yer türü ('Otobüs Durağı' veya 'İZBAN İstasyonu'). 
+                             Belirtilmezse her ikisi de aranır.
 
     Returns:
-        En yakın durakların bilgilerini ve mesafeyi içeren bir liste.
+        En yakın durakların/istasyonların bilgilerini (tür, ad, mesafe vb.) içeren bir liste.
     """
-    if stops_df is None or stops_df.empty:
-        logger.error("Durak verileri yüklenemediği için en yakın durak araması yapılamıyor.")
-        return [{"hata": "Durak veritabanı hazır değil."}]
+    if (stops_df is None or stops_df.empty) and \
+       (izban_stations_df is None or izban_stations_df.empty):
+        logger.error("Durak ve İZBAN istasyon verileri yüklenemediği için arama yapılamıyor.")
+        return [{"hata": "Veritabanları hazır değil."}]
+
+    all_locations = []
+
+    if stops_df is not None and not stops_df.empty:
+        stops = stops_df.copy()
+        stops['TUR'] = 'Otobüs Durağı'
+        stops = stops.rename(columns={'DURAK_ADI': 'ADI'})
+        all_locations.append(stops[['ADI', 'ENLEM', 'BOYLAM', 'TUR']])
+
+    if izban_stations_df is not None and not izban_stations_df.empty:
+        izban = izban_stations_df.copy()
+        izban['TUR'] = 'İZBAN İstasyonu'
+        izban = izban.rename(columns={'ISTASYON_ADI': 'ADI'})
+        all_locations.append(izban[['ADI', 'ENLEM', 'BOYLAM', 'TUR']])
+
+    if not all_locations:
+        logger.warning("Konum tabanlı arama için uygun veri bulunamadı.")
+        return []
+
+    combined_df = pd.concat(all_locations, ignore_index=True).dropna(subset=['ADI', 'ENLEM', 'BOYLAM'])
+
+    target_df = combined_df
+    if tur:
+        valid_types = ['Otobüs Durağı', 'İZBAN İstasyonu']
+        if tur in valid_types:
+            logger.info(f"Arama sadece '{tur}' türündeki yerler için filtreleniyor.")
+            target_df = combined_df[combined_df['TUR'] == tur]
+        else:
+            logger.error(f"Geçersiz tür '{tur}' belirtildi.")
+            return [{"hata": f"Geçersiz tür. Sadece {valid_types} değerlerinden biri kullanılabilir."}]
+    
+    if target_df.empty:
+        logger.warning(f"'{tur}' türünde herhangi bir konum bulunamadı.")
+        return []
 
     R = 6371.0
 
-    df = stops_df.copy()
-
     lat1_rad = np.radians(latitude)
     lon1_rad = np.radians(longitude)
-    lat2_rad = np.radians(df['ENLEM'])
-    lon2_rad = np.radians(df['BOYLAM'])
+    lat2_rad = np.radians(target_df['ENLEM'])
+    lon2_rad = np.radians(target_df['BOYLAM'])
 
     dlon = lon2_rad - lon1_rad
     dlat = lat2_rad - lat1_rad
@@ -453,13 +580,13 @@ def en_yakin_duraklari_bul(latitude: float, longitude: float, limit: int = 3) ->
     c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1 - a))
     distance_km = R * c
 
-    df['mesafe_km'] = distance_km
+    target_df['mesafe_km'] = distance_km
 
-    nearest_stops = df.sort_values(by='mesafe_km').head(limit)
+    nearest = target_df.sort_values(by='mesafe_km').head(limit)
 
-    return nearest_stops.to_dict('records')
+    return nearest.to_dict('records')
 
-# --- Tool 10: Tarayıcıdan Hassas Konum Alma ---
+# --- Tool 12: Tarayıcıdan Hassas Konum Alma ---
 @mcp.tool()
 def konumumu_al() -> str:
     """
