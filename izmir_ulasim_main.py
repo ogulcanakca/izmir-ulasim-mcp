@@ -666,7 +666,6 @@ def konumumu_al() -> str:
             location_result['longitude'] = data['longitude']
             logger.info(f"Tarayıcıdan konum alındı: {data}")
             location_received_event.set()
-            # Sunucuyu kapatmak için bir fonksiyon ekleyelim.
             request.environ.get('werkzeug.server.shutdown')()
             return jsonify({"status": "success"}), 200
         return jsonify({"status": "error", "message": "Eksik veri"}), 400
