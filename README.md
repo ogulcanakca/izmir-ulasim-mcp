@@ -14,11 +14,14 @@ Bu MCP sunucusu, aşağıdaki araçları (tool) içermektedir:
 * **`hattin_anlik_otobus_konumlarini_getir(line_id)`**: ID'si girilen bir hatta ait tüm otobüslerin anlık konum bilgilerini getirir.
 * **`hattin_duraga_yaklasan_otobuslerini_getir(line_id, stop_id)`**: Belirtilen bir hattın, belirtilen durağa yaklaşmakta olan otobüslerini getirir.
 * **`durak_ara(durak_adi)`**: Adında belirtilen metin geçen otobüs duraklarını arar.
+* **`izban_istasyon_ara(istasyon_adi)`**: Adında belirtilen metin geçen İZBAN istasyonlarını arar.
+* **`izban_sefer_saatlerini_getir(kalkis_istasyon_id, varis_istasyon_id)`**: Belirtilen iki İZBAN istasyonu arasındaki sefer saatlerini getirir.
+* **`izban_tutar_hesapla(binis_istasyon_id, inis_istasyon_id, aktarma_sayisi)`**: 'Gittiğin Kadar Öde' sistemine göre İZBAN yolculuk ücretini hesaplar.
 * **`hat_ara(hat_bilgisi)`**: Adında veya güzergahında belirtilen metin geçen otobüs hatlarını arar.
 * **`hat_sefer_saatlerini_ara(hat_no)`**: Belirtilen hat numarasına göre otobüs sefer saatlerini arar.
 * **`hat_guzergah_koordinatlarini_getir(hat_no)`**: Belirtilen hat numarasına ait güzergahın koordinat (enlem/boylam) bilgilerini getirir.
 * **`hat_detaylarini_ara(hat_bilgisi)`**: Adında veya güzergahında belirtilen metni içeren hatların çalışma saatleri gibi detaylı bilgilerini arar.
-* **`en_yakin_duraklari_bul(latitude, longitude)`**: Verilen enlem ve boylama en yakın otobüs duraklarını bulur.
+* **`en_yakin_duraklari_bul(latitude, longitude, tur)`**: Verilen enlem ve boylama en yakın otobüs duraklarını veya İZBAN istasyonlarını bulur.
 * **`konumumu_al()`**: Tarayıcı üzerinden kullanıcının hassas coğrafi konumunu alır.
 
 ## Kurulum ve Kullanım
