@@ -11,6 +11,9 @@ from flask import Flask, render_template_string, request, jsonify
 import webbrowser
 from threading import Timer, Event, Thread
 from contextlib import redirect_stdout, redirect_stderr
+from datetime import datetime, time
+from zoneinfo import ZoneInfo
+
 
 from mcp.server.fastmcp import FastMCP
 
@@ -378,7 +381,7 @@ def izban_sefer_saatlerini_getir(kalkis_istasyon_id: int, varis_istasyon_id: int
         response = requests.get(url)
         if response.status_code == 200:
             return response.json()
-        elif response.status_code == 204: # No content
+        elif response.status_code == 204:
             logger.info(f"'{kalkis_istasyon_id}' ve '{varis_istasyon_id}' arasında sefer bulunamadı.")
             return [] 
         response.raise_for_status()
@@ -388,7 +391,55 @@ def izban_sefer_saatlerini_getir(kalkis_istasyon_id: int, varis_istasyon_id: int
     return None
 
 
-# --- Tool 7: Otobüs Hattı Arama ---
+# --- Tool 7: İZBAN Tutar Hesaplama ---
+@mcp.tool()
+def izban_tutar_hesapla(binis_istasyon_id: int, inis_istasyon_id: int, aktarma_sayisi: int) -> Optional[Dict[str, Any]]:
+    """
+    'Gittiğin Kadar Öde' sistemine göre İZBAN yolculuk ücretini hesaplar.
+    Halk Taşıt saat dilimlerini (her gün 05:00-07:00 ve 19:00-20:00) otomatik olarak kontrol eder.
+
+    Args:
+        binis_istasyon_id (int): Biniş yapılacak istasyonun ID'si.
+        inis_istasyon_id (int): İniş yapılacak istasyonun ID'si.
+        aktarma_sayisi (int): Yapılan aktarma sayısı (0, 1, 2 veya 3).
+
+    Returns:
+        Ücret detaylarını ve Halk Taşıt saati uygulanıp uygulanmadığı bilgisini içeren bir sözlük veya hata durumunda None.
+    """
+    try:
+        tz = ZoneInfo("Europe/Istanbul")
+        now = datetime.now(tz).time()
+
+        morning_start = time(5, 0)
+        morning_end = time(7, 0)
+        evening_start = time(19, 0)
+        evening_end = time(20, 0)
+
+        is_halk_tasit_saati = (morning_start <= now < morning_end) or \
+                              (evening_start <= now < evening_end)
+        logger.info(f"Halk Taşıt saati kontrolü: Şu anki saat ({now}) için durum: {is_halk_tasit_saati}")
+    except Exception as e:
+        logger.warning(f"Saat dilimi bilgisi alınamadı, 'halk_tasit_saati_mi' false varsayılıyor. Hata: {e}")
+        is_halk_tasit_saati = False
+
+    url = f"https://openapi.izmir.bel.tr/api/izban/tutarhesaplama/{binis_istasyon_id}/{inis_istasyon_id}/{aktarma_sayisi}/{str(is_halk_tasit_saati).lower()}"
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            data = response.json()
+            data['HalkTasitSaatiUygulandiMi'] = is_halk_tasit_saati
+            return data
+        elif response.status_code == 204:
+            logger.info(f"'{binis_istasyon_id}' ve '{inis_istasyon_id}' arasında ücret hesaplama için sonuç bulunamadı.")
+            return {"hata": "Hesaplama yapılamadı, sonuç bulunamadı."}
+        response.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        logger.error(f"İZBAN tutar hesaplama API isteği sırasında hata: {e}")
+        return None
+    return None
+
+
+# --- Tool 8: Otobüs Hattı Arama ---
 @mcp.tool()
 def hat_ara(hat_bilgisi: str, limit: int = 5) -> Optional[List[Dict[str, Any]]]:
     """
@@ -424,7 +475,7 @@ def hat_ara(hat_bilgisi: str, limit: int = 5) -> Optional[List[Dict[str, Any]]]:
     
     return processed_results
 
-# --- Tool 8: Hat Sefer Saati Arama ---
+# --- Tool 9: Hat Sefer Saati Arama ---
 def _indir_ve_cache_le_sefer_saatleri_csv() -> Optional[str]:
     """
     Sefer saatleri CSV dosyasını indirir ve yerel bir kopyasını oluşturur.
@@ -467,7 +518,7 @@ def hat_sefer_saatlerini_ara(hat_no: int, limit: int = 50) -> Optional[List[Dict
         logger.error(f"Sefer saatleri CSV dosyası okunurken hata oluştu: {e}")
         return [{"hata": f"Sefer saatleri dosyası işlenirken bir hata oluştu: {e}"}]
 
-# --- Tool 9: Hat Güzergah Koordinatlarını Getir ---
+# --- Tool 10: Hat Güzergah Koordinatlarını Getir ---
 @mcp.tool()
 def hat_guzergah_koordinatlarini_getir(hat_no: int, limit: int = 250) -> Optional[List[Dict[str, Any]]]:
     """
@@ -489,7 +540,7 @@ def hat_guzergah_koordinatlarini_getir(hat_no: int, limit: int = 250) -> Optiona
 
     return results_df.to_dict('records')
 
-# --- Tool 10: Hat Detaylarını Ara ---
+# --- Tool 11: Hat Detaylarını Ara ---
 @mcp.tool()
 def hat_detaylarini_ara(hat_bilgisi: str, limit: int = 5) -> Optional[List[Dict[str, Any]]]:
     """
@@ -509,7 +560,7 @@ def hat_detaylarini_ara(hat_bilgisi: str, limit: int = 5) -> Optional[List[Dict[
         limit=limit
     )
 
-# --- Tool 11: Konuma Göre En Yakın Durakları Bulma ---
+# --- Tool 12: Konuma Göre En Yakın Durakları Bulma ---
 @mcp.tool()
 def en_yakin_duraklari_bul(latitude: float, longitude: float, limit: int = 5, tur: Optional[str] = None) -> Optional[List[Dict[str, Any]]]:
     """
@@ -586,7 +637,7 @@ def en_yakin_duraklari_bul(latitude: float, longitude: float, limit: int = 5, tu
 
     return nearest.to_dict('records')
 
-# --- Tool 12: Tarayıcıdan Hassas Konum Alma ---
+# --- Tool 13: Tarayıcıdan Hassas Konum Alma ---
 @mcp.tool()
 def konumumu_al() -> str:
     """
