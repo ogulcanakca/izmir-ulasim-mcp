@@ -26,7 +26,14 @@ from config.mcp_tools_config import (
     DURAKLAR_CSV_URL,
     HAT_GUZERGAH_KOORDINATLARI_CSV_URL,
     IZBAN_ISTASYONLAR_CSV_URL,
-    HTML_TEMPLATE_FOR_LOCATION
+    METRO_DURAK_MESAFELERI_CSV_URL,
+    TRAMVAY_KARSIYAKA_DURAK_MESAFELERI_CSV_URL,
+    TRAMVAY_KONAK_KARA_DURAK_MESAFELERI_CSV_URL,
+    TRAMVAY_KONAK_DENIZ_DURAK_MESAFELERI_CSV_URL,
+    TRAMVAY_CIGLI_DURAK_MESAFELERI_CSV_URL,
+    HTML_TEMPLATE_FOR_LOCATION,
+    METRO_BASE_URL,
+    TRAMVAY_BASE_URL
 )
 
 logging.basicConfig(
@@ -190,9 +197,209 @@ def load_or_process_izban_stations_data(
         logger.error(f"Ham İZBAN istasyon dosyası ('{raw_csv_path}') işlenirken genel bir hata oluştu: {e}")
         return None
 
+def load_or_process_metro_distances_data(
+    raw_csv_filename='metro-durak-mesafeleri.csv',
+    processed_parquet_filename='processed_metro_distances.parquet'
+) -> Optional[pd.DataFrame]:
+    """
+    Metro istasyonları arası mesafe verilerini CSV'den indirir,
+    kümülatif mesafeyi hesaplar, Parquet olarak kaydeder ve sonucu döndürür.
+    """
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    raw_csv_path = os.path.join(script_dir, 'data', raw_csv_filename)
+    processed_parquet_path = os.path.join(script_dir, 'data', processed_parquet_filename)
+
+    if not _download_csv(METRO_DURAK_MESAFELERI_CSV_URL, raw_csv_path):
+        logger.error("Metro mesafe CSV'si indirilemediği için veri yüklenemedi.")
+        return None
+
+    try:
+        logger.info(f"İndirilen ham metro mesafe verisi '{raw_csv_path}' işleniyor...")
+        
+        df = pd.read_csv(raw_csv_path)
+        
+        df['MESAFE'] = pd.to_numeric(df['MESAFE'], errors='coerce')
+        df = df.dropna(subset=['MESAFE'])
+        df = df.sort_values('ISTASYON_SIRASI').reset_index(drop=True)
+        
+        df['KUMULATIF_MESAFE'] = df['MESAFE'].cumsum()
+
+        df.to_parquet(processed_parquet_path, index=False)
+        logger.info(f"İşlenmiş metro mesafe verisi '{processed_parquet_path}' olarak kaydedildi.")
+
+        return df
+        
+    except FileNotFoundError:
+        logger.error(f"HATA: Ham veri dosyası '{raw_csv_path}' bulunamadı!")
+        return None
+    except Exception as e:
+        logger.error(f"Ham metro mesafe dosyası ('{raw_csv_path}') işlenirken hata oluştu: {e}", exc_info=True)
+        return None
+
+def load_or_process_karsiyaka_tram_distances_data(
+    raw_csv_filename='tramvay-karsiyaka-durak-mesafeleri.csv',
+    processed_parquet_filename='processed_karsiyaka_tram_distances.parquet'
+) -> Optional[pd.DataFrame]:
+    """
+    Karşıyaka tramvay istasyonları arası mesafe verilerini CSV'den indirir,
+    kümülatif mesafeyi hesaplar, Parquet olarak kaydeder ve sonucu döndürür.
+    """
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    raw_csv_path = os.path.join(script_dir, 'data', raw_csv_filename)
+    processed_parquet_path = os.path.join(script_dir, 'data', processed_parquet_filename)
+
+    if not _download_csv(TRAMVAY_KARSIYAKA_DURAK_MESAFELERI_CSV_URL, raw_csv_path):
+        logger.error("Karşıyaka tramvay mesafe CSV'si indirilemediği için veri yüklenemedi.")
+        return None
+
+    try:
+        logger.info(f"İndirilen ham Karşıyaka tramvay mesafe verisi '{raw_csv_path}' işleniyor...")
+
+        df = pd.read_csv(raw_csv_path, delimiter=';')
+        
+        df['MESAFE'] = pd.to_numeric(df['MESAFE'], errors='coerce')
+        df = df.dropna(subset=['MESAFE'])
+        df = df.sort_values('ISTASYON_SIRASI').reset_index(drop=True)
+        
+        df['KUMULATIF_MESAFE'] = df['MESAFE'].cumsum()
+
+        df.to_parquet(processed_parquet_path, index=False)
+        logger.info(f"İşlenmiş Karşıyaka tramvay mesafe verisi '{processed_parquet_path}' olarak kaydedildi.")
+
+        return df
+        
+    except FileNotFoundError:
+        logger.error(f"HATA: Ham veri dosyası '{raw_csv_path}' bulunamadı!")
+        return None
+    except Exception as e:
+        logger.error(f"Ham Karşıyaka tramvay mesafe dosyası ('{raw_csv_path}') işlenirken hata oluştu: {e}", exc_info=True)
+        return None
+
+def load_or_process_konak_tram_distances_data(
+    raw_csv_filename='tramvay-konak-durak-mesafeleri-sag.csv',
+    processed_parquet_filename='processed_konak_tram_distances.parquet'
+) -> Optional[pd.DataFrame]:
+    """
+    Konak tramvay istasyonları arası mesafe verilerini CSV'den indirir,
+    kümülatif mesafeyi hesaplar, Parquet olarak kaydeder ve sonucu döndürür.
+    """
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    raw_csv_path = os.path.join(script_dir, 'data', raw_csv_filename)
+    processed_parquet_path = os.path.join(script_dir, 'data', processed_parquet_filename)
+
+    if not _download_csv(TRAMVAY_KONAK_KARA_DURAK_MESAFELERI_CSV_URL, raw_csv_path):
+        logger.error("Konak tramvay mesafe CSV'si indirilemediği için veri yüklenemedi.")
+        return None
+
+    try:
+        logger.info(f"İndirilen ham Konak tramvay mesafe verisi '{raw_csv_path}' işleniyor...")
+
+        df = pd.read_csv(raw_csv_path, delimiter=';')
+        
+        df['MESAFE'] = pd.to_numeric(df['MESAFE'], errors='coerce')
+        df = df.dropna(subset=['MESAFE'])
+        df = df.sort_values('ISTASYON_SIRASI').reset_index(drop=True)
+        
+        df['KUMULATIF_MESAFE'] = df['MESAFE'].cumsum()
+
+        df.to_parquet(processed_parquet_path, index=False)
+        logger.info(f"İşlenmiş Konak tramvay mesafe verisi '{processed_parquet_path}' olarak kaydedildi.")
+
+        return df
+        
+    except FileNotFoundError:
+        logger.error(f"HATA: Ham veri dosyası '{raw_csv_path}' bulunamadı!")
+        return None
+    except Exception as e:
+        logger.error(f"Ham Konak tramvay mesafe dosyası ('{raw_csv_path}') işlenirken hata oluştu: {e}", exc_info=True)
+        return None
+
+def load_or_process_konak_tram_deniz_distances_data(
+    raw_csv_filename='tramvay-konak-durak-mesafeleri-sol.csv',
+    processed_parquet_filename='processed_konak_tram_deniz_distances.parquet'
+) -> Optional[pd.DataFrame]:
+    """
+    Konak tramvay (deniz tarafı) durakları arası mesafe verilerini indirir,
+    kümülatif mesafeyi hesaplar, Parquet olarak kaydeder ve sonucu döndürür.
+    """
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    raw_csv_path = os.path.join(script_dir, 'data', raw_csv_filename)
+    processed_parquet_path = os.path.join(script_dir, 'data', processed_parquet_filename)
+
+    if not _download_csv(TRAMVAY_KONAK_DENIZ_DURAK_MESAFELERI_CSV_URL, raw_csv_path):
+        logger.error("Konak tramvay (deniz) mesafe CSV'si indirilemediği için veri yüklenemedi.")
+        return None
+
+    try:
+        logger.info(f"İndirilen ham Konak tramvay (deniz) mesafe verisi '{raw_csv_path}' işleniyor...")
+
+        df = pd.read_csv(raw_csv_path, delimiter='\t')
+        
+        df['MESAFE'] = pd.to_numeric(df['MESAFE'], errors='coerce')
+        df = df.dropna(subset=['MESAFE'])
+        df = df.sort_values('ISTASYON_SIRASI').reset_index(drop=True)
+        
+        df['KUMULATIF_MESAFE'] = df['MESAFE'].cumsum()
+
+        df.to_parquet(processed_parquet_path, index=False)
+        logger.info(f"İşlenmiş Konak tramvay (deniz) mesafe verisi '{processed_parquet_path}' olarak kaydedildi.")
+
+        return df
+        
+    except FileNotFoundError:
+        logger.error(f"HATA: Ham veri dosyası '{raw_csv_path}' bulunamadı!")
+        return None
+    except Exception as e:
+        logger.error(f"Ham Konak tramvay (deniz) mesafe dosyası ('{raw_csv_path}') işlenirken hata oluştu: {e}", exc_info=True)
+        return None
+
+def load_or_process_cigli_tram_distances_data(
+    raw_csv_filename='tramvay-cigili-durak-mesafeleri.csv',
+    processed_parquet_filename='processed_cigli_tram_distances.parquet'
+) -> Optional[pd.DataFrame]:
+    """
+    Çiğli tramvay durakları arası mesafe verilerini CSV'den indirir,
+    kümülatif mesafeyi hesaplar, Parquet olarak kaydeder ve sonucu döndürür.
+    """
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    raw_csv_path = os.path.join(script_dir, 'data', raw_csv_filename)
+    processed_parquet_path = os.path.join(script_dir, 'data', processed_parquet_filename)
+
+    if not _download_csv(TRAMVAY_CIGLI_DURAK_MESAFELERI_CSV_URL, raw_csv_path):
+        logger.error("Çiğli tramvay mesafe CSV'si indirilemediği için veri yüklenemedi.")
+        return None
+
+    try:
+        logger.info(f"İndirilen ham Çiğli tramvay mesafe verisi '{raw_csv_path}' işleniyor...")
+
+        df = pd.read_csv(raw_csv_path)
+        
+        df['MESAFE'] = pd.to_numeric(df['MESAFE'], errors='coerce')
+        df = df.dropna(subset=['MESAFE'])
+        df = df.sort_values('ISTASYON_SIRASI').reset_index(drop=True)
+        
+        df['KUMULATIF_MESAFE'] = df['MESAFE'].cumsum()
+
+        df.to_parquet(processed_parquet_path, index=False)
+        logger.info(f"İşlenmiş Çiğli tramvay mesafe verisi '{processed_parquet_path}' olarak kaydedildi.")
+
+        return df
+        
+    except FileNotFoundError:
+        logger.error(f"HATA: Ham veri dosyası '{raw_csv_path}' bulunamadı!")
+        return None
+    except Exception as e:
+        logger.error(f"Ham Çiğli tramvay mesafe dosyası ('{raw_csv_path}') işlenirken hata oluştu: {e}", exc_info=True)
+        return None
+
 stops_df = load_or_process_stops_data()
 route_coords_df = load_or_process_route_coords_data()
 izban_stations_df = load_or_process_izban_stations_data()
+metro_distances_df = load_or_process_metro_distances_data()
+karsiyaka_tram_distances_df = load_or_process_karsiyaka_tram_distances_data()
+konak_tram_distances_df = load_or_process_konak_tram_distances_data()
+konak_tram_deniz_distances_df = load_or_process_konak_tram_deniz_distances_data()
+cigli_tram_distances_df = load_or_process_cigli_tram_distances_data()
 
 # --- Tool 1: Durağa Yaklaşan Tüm Otobüsler ---
 @mcp.tool()
@@ -694,6 +901,329 @@ def konumumu_al() -> str:
         logger.warning("Konum alma zaman aşımına uğradı veya izin verilmedi.")
         return "Konum alınamadı. İşlem 60 saniye içinde zaman aşımına uğradı veya tarayıcıda izin verilmedi."
 
+# --- Tool 14: Metro İstasyonlarını Getir ---
+@mcp.tool()
+def metro_istasyonlarini_getir() -> Optional[List[Dict[str, Any]]]:
+    """
+    İzmir metrosuna ait tüm istasyonların bir listesini döndürür.
+
+    Returns:
+        Metro istasyon bilgilerini içeren bir liste veya hata durumunda None.
+    """
+    url = f"{METRO_BASE_URL}/istasyonlar"
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            return response.json()
+        elif response.status_code == 204:
+            return []
+        response.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Metro istasyonları API isteği sırasında hata: {e}")
+        return None
+    return None
+
+# --- Tool 15: Tramvay Hatlarını Getir ---
+@mcp.tool()
+def tramvay_hatlarini_getir() -> Optional[List[Dict[str, Any]]]:
+    """
+    İzmir tramvayına ait tüm hatların bir listesini döndürür.
+
+    Returns:
+        Tramvay hat bilgilerini içeren bir liste veya hata durumunda None.
+    """
+    url = f"{TRAMVAY_BASE_URL}/hatlar"
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            return response.json()
+        elif response.status_code == 204:
+            return []
+        response.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Tramvay hatları API isteği sırasında hata: {e}")
+        return None
+    return None
+
+# --- Tool 16: Tramvay İstasyonlarını Getir ---
+@mcp.tool()
+def tramvay_istasyonlarini_getir(hat_id: int) -> Optional[List[Dict[str, Any]]]:
+    """
+    Belirtilen hat ID'sine sahip tramvay hattının tüm istasyonlarını getirir.
+
+    Args:
+        hat_id (int): İstasyonları listelenecek olan tramvay hattının ID'si.
+
+    Returns:
+        İstasyon bilgilerini içeren bir liste veya hata durumunda None.
+    """
+    url = f"{TRAMVAY_BASE_URL}/istasyonlar/{hat_id}"
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            return response.json()
+        elif response.status_code == 204:
+            logger.info(f"'{hat_id}' numaralı tramvay hattı için istasyon bulunamadı.")
+            return []
+        response.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Tramvay istasyonları API isteği sırasında hata: {e}")
+        return None
+    return None
+
+# --- Tool 17: Tramvay Seferlerini Getir ---
+@mcp.tool()
+def tramvay_seferlerini_getir(hat_id: int) -> Optional[List[Dict[str, Any]]]:
+    """
+    Belirtilen hat ID'sine göre tramvay sefer saatlerini getirir.
+
+    Args:
+        hat_id (int): Sefer saatleri alınacak tramvay hattının ID'si.
+
+    Returns:
+        Sefer saati bilgilerini içeren bir liste veya hata durumunda None.
+    """
+    url = f"{TRAMVAY_BASE_URL}/seferler/{hat_id}"
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            return response.json()
+        elif response.status_code == 204:
+            logger.info(f"'{hat_id}' numaralı tramvay hattı için sefer bulunamadı.")
+            return []
+        response.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Tramvay seferleri API isteği sırasında hata: {e}")
+        return None
+    return None
+
+# --- Tool 18: Metro Sefer Saatlerini Getir ---
+@mcp.tool()
+def metro_sefer_saatlerini_getir() -> Optional[List[Dict[str, Any]]]:
+    """
+    İzmir metrosuna ait tüm sefer saatlerini getirir.
+
+    Returns:
+        Metro sefer saati bilgilerini içeren bir liste veya hata durumunda None.
+    """
+    url = f"{METRO_BASE_URL}/sefersaatleri"
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            return response.json()
+        elif response.status_code == 204:
+            logger.info("Metro için sefer saati bulunamadı.")
+            return []
+        response.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Metro sefer saatleri API isteği sırasında hata: {e}")
+        return None
+    return None
+
+# --- Tool 19: Metro İstasyonları Arası Mesafe Hesaplama ---
+@mcp.tool()
+def metro_istasyonlari_arasi_mesafe_hesapla(kalkis_istasyon_adi: str, varis_istasyon_adi: str) -> Optional[Dict[str, Any]]:
+    """
+    İki metro istasyonu arasındaki mesafeyi metre cinsinden hesaplar.
+    İstasyon adlarının tam olarak eşleşmesi gerekir.
+
+    Args:
+        kalkis_istasyon_adi (str): Başlangıç istasyonunun adı.
+        varis_istasyon_adi (str): Varış istasyonunun adı.
+
+    Returns:
+        Hesaplanan mesafeyi veya hata durumunda bir mesaj içeren bir sözlük.
+    """
+    if metro_distances_df is None:
+        logger.error("Metro mesafe verileri yüklenemediği için hesaplama yapılamıyor.")
+        return {"hata": "Metro mesafe veritabanı hazır değil."}
+
+    try:
+        kalkis_station = metro_distances_df[metro_distances_df['ISTASYON_ADI'].str.lower() == kalkis_istasyon_adi.lower()]
+        varis_station = metro_distances_df[metro_distances_df['ISTASYON_ADI'].str.lower() == varis_istasyon_adi.lower()]
+
+        if kalkis_station.empty:
+            return {"hata": f"Kalkış istasyonu bulunamadı: '{kalkis_istasyon_adi}'. Lütfen istasyon adını kontrol edin."}
+        if varis_station.empty:
+            return {"hata": f"Varış istasyonu bulunamadı: '{varis_istasyon_adi}'. Lütfen istasyon adını kontrol edin."}
+
+        kalkis_mesafe = kalkis_station.iloc[0]['KUMULATIF_MESAFE']
+        varis_mesafe = varis_station.iloc[0]['KUMULATIF_MESAFE']
+
+        mesafe = abs(varis_mesafe - kalkis_mesafe)
+
+        return {
+            "kalkis_istasyonu": kalkis_station.iloc[0]['ISTASYON_ADI'],
+            "varis_istasyonu": varis_station.iloc[0]['ISTASYON_ADI'],
+            "mesafe_metre": int(mesafe)
+        }
+    except Exception as e:
+        logger.error(f"Metro mesafe hesaplanırken bir hata oluştu: {e}", exc_info=True)
+        return {"hata": f"Hesaplama sırasında beklenmedik bir hata oluştu: {e}"}
+
+# --- Tool 20: Karşıyaka Tramvay İstasyonları Arası Mesafe Hesaplama ---
+@mcp.tool()
+def karsiyaka_tramvay_duraklar_arasi_mesafe_hesapla(kalkis_istasyon_adi: str, varis_istasyon_adi: str) -> Optional[Dict[str, Any]]:
+    """
+    İki Karşıyaka tramvay istasyonu arasındaki mesafeyi metre cinsinden hesaplar.
+    İstasyon adlarının tam olarak eşleşmesi gerekir.
+
+    Args:
+        kalkis_istasyon_adi (str): Başlangıç istasyonunun adı.
+        varis_istasyon_adi (str): Varış istasyonunun adı.
+
+    Returns:
+        Hesaplanan mesafeyi veya hata durumunda bir mesaj içeren bir sözlük.
+    """
+    if karsiyaka_tram_distances_df is None:
+        logger.error("Karşıyaka tramvay mesafe verileri yüklenemediği için hesaplama yapılamıyor.")
+        return {"hata": "Karşıyaka tramvay mesafe veritabanı hazır değil."}
+
+    try:
+        kalkis_station = karsiyaka_tram_distances_df[karsiyaka_tram_distances_df['ISTASYON_ADI'].str.lower() == kalkis_istasyon_adi.lower()]
+        varis_station = karsiyaka_tram_distances_df[karsiyaka_tram_distances_df['ISTASYON_ADI'].str.lower() == varis_istasyon_adi.lower()]
+
+        if kalkis_station.empty:
+            return {"hata": f"Kalkış istasyonu bulunamadı: '{kalkis_istasyon_adi}'. Lütfen istasyon adını kontrol edin."}
+        if varis_station.empty:
+            return {"hata": f"Varış istasyonu bulunamadı: '{varis_istasyon_adi}'. Lütfen istasyon adını kontrol edin."}
+
+        kalkis_mesafe = kalkis_station.iloc[0]['KUMULATIF_MESAFE']
+        varis_mesafe = varis_station.iloc[0]['KUMULATIF_MESAFE']
+
+        mesafe = abs(varis_mesafe - kalkis_mesafe)
+
+        return {
+            "kalkis_istasyonu": kalkis_station.iloc[0]['ISTASYON_ADI'],
+            "varis_istasyonu": varis_station.iloc[0]['ISTASYON_ADI'],
+            "mesafe_metre": int(mesafe)
+        }
+    except Exception as e:
+        logger.error(f"Karşıyaka tramvay mesafe hesaplanırken bir hata oluştu: {e}", exc_info=True)
+        return {"hata": f"Hesaplama sırasında beklenmedik bir hata oluştu: {e}"}
+
+# --- Tool 21: Konak Tramvay Durakları Arası Mesafe Hesaplama (Kara Tarafı) ---
+@mcp.tool()
+def konak_tramvay_1_duraklar_arasi_mesafe_hesapla(kalkis_istasyon_adi: str, varis_istasyon_adi: str) -> Optional[Dict[str, Any]]:
+    """
+    Kara tarafı olan yöndeki iki Konak tramvay durağı arasındaki mesafeyi metre cinsinden hesaplar.
+    Durak adlarının tam olarak eşleşmesi gerekir.
+
+    Args:
+        kalkis_istasyon_adi (str): Başlangıç durağının adı.
+        varis_istasyon_adi (str): Varış durağının adı.
+
+    Returns:
+        Hesaplanan mesafeyi veya hata durumunda bir mesaj içeren bir sözlük.
+    """
+    if konak_tram_distances_df is None:
+        logger.error("Konak tramvay mesafe verileri yüklenemediği için hesaplama yapılamıyor.")
+        return {"hata": "Konak tramvay mesafe veritabanı hazır değil."}
+
+    try:
+        kalkis_station = konak_tram_distances_df[konak_tram_distances_df['ISTASYON_ADI'].str.lower() == kalkis_istasyon_adi.lower()]
+        varis_station = konak_tram_distances_df[konak_tram_distances_df['ISTASYON_ADI'].str.lower() == varis_istasyon_adi.lower()]
+
+        if kalkis_station.empty:
+            return {"hata": f"Kalkış durağı bulunamadı: '{kalkis_istasyon_adi}'. Lütfen durak adını kontrol edin."}
+        if varis_station.empty:
+            return {"hata": f"Varış durağı bulunamadı: '{varis_istasyon_adi}'. Lütfen durak adını kontrol edin."}
+
+        kalkis_mesafe = kalkis_station.iloc[0]['KUMULATIF_MESAFE']
+        varis_mesafe = varis_station.iloc[0]['KUMULATIF_MESAFE']
+
+        mesafe = abs(varis_mesafe - kalkis_mesafe)
+
+        return {
+            "kalkis_duragi": kalkis_station.iloc[0]['ISTASYON_ADI'],
+            "varis_duragi": varis_station.iloc[0]['ISTASYON_ADI'],
+            "mesafe_metre": int(mesafe)
+        }
+    except Exception as e:
+        logger.error(f"Konak tramvay mesafe hesaplanırken bir hata oluştu: {e}", exc_info=True)
+        return {"hata": f"Hesaplama sırasında beklenmedik bir hata oluştu: {e}"}
+
+# --- Tool 22: Konak Tramvay Durakları Arası Mesafe Hesaplama (Deniz Tarafı) ---
+@mcp.tool()
+def konak_tramvay_2_duraklar_arasi_mesafe_hesapla(kalkis_istasyon_adi: str, varis_istasyon_adi: str) -> Optional[Dict[str, Any]]:
+    """
+    Deniz tarafı olan yöndeki iki Konak tramvay durağı arasındaki mesafeyi metre cinsinden hesaplar.
+    Durak adlarının tam olarak eşleşmesi gerekir.
+
+    Args:
+        kalkis_istasyon_adi (str): Başlangıç durağının adı.
+        varis_istasyon_adi (str): Varış durağının adı.
+
+    Returns:
+        Hesaplanan mesafeyi veya hata durumunda bir mesaj içeren bir sözlük.
+    """
+    if konak_tram_deniz_distances_df is None:
+        logger.error("Konak tramvay (deniz) mesafe verileri yüklenemediği için hesaplama yapılamıyor.")
+        return {"hata": "Konak tramvay (deniz) mesafe veritabanı hazır değil."}
+
+    try:
+        kalkis_station = konak_tram_deniz_distances_df[konak_tram_deniz_distances_df['ISTASYON_ADI'].str.lower() == kalkis_istasyon_adi.lower()]
+        varis_station = konak_tram_deniz_distances_df[konak_tram_deniz_distances_df['ISTASYON_ADI'].str.lower() == varis_istasyon_adi.lower()]
+
+        if kalkis_station.empty:
+            return {"hata": f"Kalkış durağı bulunamadı: '{kalkis_istasyon_adi}'. Lütfen durak adını kontrol edin."}
+        if varis_station.empty:
+            return {"hata": f"Varış durağı bulunamadı: '{varis_istasyon_adi}'. Lütfen durak adını kontrol edin."}
+
+        kalkis_mesafe = kalkis_station.iloc[0]['KUMULATIF_MESAFE']
+        varis_mesafe = varis_station.iloc[0]['KUMULATIF_MESAFE']
+
+        mesafe = abs(varis_mesafe - kalkis_mesafe)
+
+        return {
+            "kalkis_duragi": kalkis_station.iloc[0]['ISTASYON_ADI'],
+            "varis_duragi": varis_station.iloc[0]['ISTASYON_ADI'],
+            "mesafe_metre": int(mesafe)
+        }
+    except Exception as e:
+        logger.error(f"Konak tramvay (deniz) mesafe hesaplanırken bir hata oluştu: {e}", exc_info=True)
+        return {"hata": f"Hesaplama sırasında beklenmedik bir hata oluştu: {e}"}
+
+# --- Tool 23: Çiğli Tramvay Durakları Arası Mesafe Hesaplama ---
+@mcp.tool()
+def cigli_tramvay_duraklar_arasi_mesafe_hesapla(kalkis_istasyon_adi: str, varis_istasyon_adi: str) -> Optional[Dict[str, Any]]:
+    """
+    İki Çiğli tramvay durağı arasındaki mesafeyi metre cinsinden hesaplar.
+    Durak adlarının tam olarak eşleşmesi gerekir.
+
+    Args:
+        kalkis_istasyon_adi (str): Başlangıç durağının adı.
+        varis_istasyon_adi (str): Varış durağının adı.
+
+    Returns:
+        Hesaplanan mesafeyi veya hata durumunda bir mesaj içeren bir sözlük.
+    """
+    if cigli_tram_distances_df is None:
+        logger.error("Çiğli tramvay mesafe verileri yüklenemediği için hesaplama yapılamıyor.")
+        return {"hata": "Çiğli tramvay mesafe veritabanı hazır değil."}
+
+    try:
+        kalkis_station = cigli_tram_distances_df[cigli_tram_distances_df['ISTASYON_ADI'].str.lower() == kalkis_istasyon_adi.lower()]
+        varis_station = cigli_tram_distances_df[cigli_tram_distances_df['ISTASYON_ADI'].str.lower() == varis_istasyon_adi.lower()]
+
+        if kalkis_station.empty:
+            return {"hata": f"Kalkış durağı bulunamadı: '{kalkis_istasyon_adi}'. Lütfen durak adını kontrol edin."}
+        if varis_station.empty:
+            return {"hata": f"Varış durağı bulunamadı: '{varis_istasyon_adi}'. Lütfen durak adını kontrol edin."}
+
+        kalkis_mesafe = kalkis_station.iloc[0]['KUMULATIF_MESAFE']
+        varis_mesafe = varis_station.iloc[0]['KUMULATIF_MESAFE']
+
+        mesafe = abs(varis_mesafe - kalkis_mesafe)
+
+        return {
+            "kalkis_duragi": kalkis_station.iloc[0]['ISTASYON_ADI'],
+            "varis_duragi": varis_station.iloc[0]['ISTASYON_ADI'],
+            "mesafe_metre": int(mesafe)
+        }
+    except Exception as e:
+        logger.error(f"Çiğli tramvay mesafe hesaplanırken bir hata oluştu: {e}", exc_info=True)
+        return {"hata": f"Hesaplama sırasında beklenmedik bir hata oluştu: {e}"}
 
 if __name__ == "__main__":
     mcp.run(transport="stdio")

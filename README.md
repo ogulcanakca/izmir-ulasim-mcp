@@ -23,6 +23,16 @@ Bu MCP sunucusu, aşağıdaki araçları (tool) içermektedir:
 * **`hat_detaylarini_ara(hat_bilgisi)`**: Adında veya güzergahında belirtilen metni içeren hatların çalışma saatleri gibi detaylı bilgilerini arar.
 * **`en_yakin_duraklari_bul(latitude, longitude, tur)`**: Verilen enlem ve boylama en yakın otobüs duraklarını veya İZBAN istasyonlarını bulur.
 * **`konumumu_al()`**: Tarayıcı üzerinden kullanıcının hassas coğrafi konumunu alır.
+* **`metro_istasyonlarini_getir()`**: İzmir metrosuna ait tüm istasyonların bir listesini döndürür.
+* **`metro_sefer_saatlerini_getir()`**: İzmir metrosuna ait tüm sefer saatlerini getirir.
+* **`metro_istasyonlari_arasi_mesafe_hesapla(kalkis_istasyon_adi, varis_istasyon_adi)`**: İki metro istasyonu arasındaki mesafeyi metre cinsinden hesaplar.
+* **`tramvay_hatlarini_getir()`**: İzmir tramvayına ait tüm hatların bir listesini döndürür.
+* **`tramvay_istasyonlarini_getir(hat_id)`**: Belirtilen hat ID'sine sahip tramvay hattının tüm istasyonlarını getirir.
+* **`tramvay_seferlerini_getir(hat_id)`**: Belirtilen hat ID'sine göre tramvay sefer saatlerini getirir.
+* **`karsiyaka_tramvay_duraklar_arasi_mesafe_hesapla(kalkis_istasyon_adi, varis_istasyon_adi)`**: İki Karşıyaka tramvay istasyonu arasındaki mesafeyi metre cinsinden hesaplar.
+* **`konak_tramvay_1_duraklar_arasi_mesafe_hesapla(kalkis_istasyon_adi, varis_istasyon_adi)`**: Kara tarafı olan yöndeki iki Konak tramvay durağı arasındaki mesafeyi metre cinsinden hesaplar.
+* **`konak_tramvay_2_duraklar_arasi_mesafe_hesapla(kalkis_istasyon_adi, varis_istasyon_adi)`**: Deniz tarafı olan yöndeki iki Konak tramvay durağı arasındaki mesafeyi metre cinsinden hesaplar.
+* **`cigli_tramvay_duraklar_arasi_mesafe_hesapla(kalkis_istasyon_adi, varis_istasyon_adi)`**: İki Çiğli tramvay durağı arasındaki mesafeyi metre cinsinden hesaplar.
 
 ## Kurulum ve Kullanım
 
@@ -88,9 +98,13 @@ veya npm ile oluşturmak isterseniz:
 
 ## Örnek Kullanım
 
-![ornek-sorgular](assets/ornek-sorgular.png)
-![ornek-sorgu_ek1](assets/ornek_sorgu_ek1.png)
-![ornek-sorgu_ek2](assets/ornek_sorgu_ek2.png)
+<p align="center">
+  <img alt="Örnek Sorgular" src="assets/ornek-sorgular.png" width="50%">
+  <br>
+  <img alt="Örnek Sorgu Ek 1" src="assets/ornek_sorgu_ek1.png" width="50%">
+  <br>
+  <img alt="Örnek Sorgu Ek 2" src="assets/ornek_sorgu_ek2.png" width="50%">
+</p>
 
 ## Gelecek Çalışmaları
 

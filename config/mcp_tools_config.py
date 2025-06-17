@@ -1,5 +1,7 @@
 # API Adresleri
 IZTEK_BASE_URL = "https://openapi.izmir.bel.tr/api/iztek"
+METRO_BASE_URL = "https://openapi.izmir.bel.tr/api/metro"
+TRAMVAY_BASE_URL = "https://openapi.izmir.bel.tr/api/tramvay" 
 ACIKVERI_BASE_URL = "https://acikveri.bizizmir.com/tr/api/3/action"
 
 # Kaynak ID'leri
@@ -11,6 +13,11 @@ SEFER_SAATLERI_CSV_URL = "https://openfiles.izmir.bel.tr/211488/docs/eshot-otobu
 DURAKLAR_CSV_URL = "https://openfiles.izmir.bel.tr/211488/docs/eshot-otobus-duraklari.csv"
 HAT_GUZERGAH_KOORDINATLARI_CSV_URL = "https://openfiles.izmir.bel.tr/211488/docs/eshot-otobus-hat-guzergahlari.csv"
 IZBAN_ISTASYONLAR_CSV_URL = "https://acikveri.bizizmir.com/dataset/e3854620-a776-47d4-a63c-9180fc1d4e9e/resource/df6ec7bf-5e75-4f89-9d60-e8da7319517c/download/izban-istasyonlar.csv"
+METRO_DURAK_MESAFELERI_CSV_URL = "https://acikveri.bizizmir.com/dataset/b43d973e-8b98-4572-a944-dc39373ab7cb/resource/9a503344-25d5-4f34-8811-65e3108303ca/download/metro-durak-mesafeleri.csv"
+TRAMVAY_KARSIYAKA_DURAK_MESAFELERI_CSV_URL = "https://acikveri.bizizmir.com/dataset/b43d973e-8b98-4572-a944-dc39373ab7cb/resource/45d03ae3-f928-441f-bed3-e26c5edd9f42/download/tramvay-karsiyaka-durak-mesafeleri.csv"
+TRAMVAY_KONAK_KARA_DURAK_MESAFELERI_CSV_URL = "https://acikveri.bizizmir.com/dataset/b43d973e-8b98-4572-a944-dc39373ab7cb/resource/32930780-fd3a-4b9d-a1b5-a299440a1d6c/download/tramvay-konak-durak-mesafeleri-sag.csv"
+TRAMVAY_KONAK_DENIZ_DURAK_MESAFELERI_CSV_URL = "https://acikveri.bizizmir.com/dataset/b43d973e-8b98-4572-a944-dc39373ab7cb/resource/33480acc-873b-43e5-aa3d-2bd6d5fb2134/download/tramvay-konak-durak-mesafeleri-sol.csv"
+TRAMVAY_CIGLI_DURAK_MESAFELERI_CSV_URL = "https://acikveri.bizizmir.com/dataset/b43d973e-8b98-4572-a944-dc39373ab7cb/resource/b29426e4-39ae-4b89-8bbd-be6104161fb7/download/tramvay-cigili-durak-mesafeleri.csv"
 
 HTML_TEMPLATE_FOR_LOCATION = """
 <!DOCTYPE html>
