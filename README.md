@@ -99,11 +99,11 @@ veya npm ile oluşturmak isterseniz:
 ## Örnek Kullanım
 
 <p align="center">
-  <img alt="Örnek Sorgular" src="assets/ornek-sorgular.png" width="50%">
+  <img alt="Örnek Sorgular" src="assets/ornek-sorgular.png" width="65%">
   <br>
-  <img alt="Örnek Sorgu Ek 1" src="assets/ornek_sorgu_ek1.png" width="50%">
+  <img alt="Örnek Sorgu Ek 1" src="assets/ornek_sorgu_ek1.png" width="65%">
   <br>
-  <img alt="Örnek Sorgu Ek 2" src="assets/ornek_sorgu_ek2.png" width="50%">
+  <img alt="Örnek Sorgu Ek 2" src="assets/ornek_sorgu_ek2.png" width="65%">
 </p>
 
 ## Gelecek Çalışmaları
