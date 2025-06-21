@@ -1063,7 +1063,7 @@ def metro_istasyonlari_arasi_mesafe_hesapla(kalkis_istasyon_adi: str, varis_ista
 
 # --- Tool 20: Karşıyaka Tramvay İstasyonları Arası Mesafe Hesaplama ---
 @mcp.tool()
-def karsiyaka_tramvay_duraklar_arasi_mesafe_hesapla(kalkis_istasyon_adi: str, varis_istasyon_adi: str) -> Optional[Dict[str, Any]]:
+def karsiyaka_tram_duraklar_arasi_mesafe_hesapla(kalkis_istasyon_adi: str, varis_istasyon_adi: str) -> Optional[Dict[str, Any]]:
     """
     İki Karşıyaka tramvay istasyonu arasındaki mesafeyi metre cinsinden hesaplar.
     İstasyon adlarının tam olarak eşleşmesi gerekir.
@@ -1104,7 +1104,7 @@ def karsiyaka_tramvay_duraklar_arasi_mesafe_hesapla(kalkis_istasyon_adi: str, va
 
 # --- Tool 21: Konak Tramvay Durakları Arası Mesafe Hesaplama (Kara Tarafı) ---
 @mcp.tool()
-def konak_tramvay_1_duraklar_arasi_mesafe_hesapla(kalkis_istasyon_adi: str, varis_istasyon_adi: str) -> Optional[Dict[str, Any]]:
+def konak_tram_1_duraklar_arasi_mesafe_hesapla(kalkis_istasyon_adi: str, varis_istasyon_adi: str) -> Optional[Dict[str, Any]]:
     """
     Kara tarafı olan yöndeki iki Konak tramvay durağı arasındaki mesafeyi metre cinsinden hesaplar.
     Durak adlarının tam olarak eşleşmesi gerekir.
@@ -1145,7 +1145,7 @@ def konak_tramvay_1_duraklar_arasi_mesafe_hesapla(kalkis_istasyon_adi: str, vari
 
 # --- Tool 22: Konak Tramvay Durakları Arası Mesafe Hesaplama (Deniz Tarafı) ---
 @mcp.tool()
-def konak_tramvay_2_duraklar_arasi_mesafe_hesapla(kalkis_istasyon_adi: str, varis_istasyon_adi: str) -> Optional[Dict[str, Any]]:
+def konak_tram_2_duraklar_arasi_mesafe_hesapla(kalkis_istasyon_adi: str, varis_istasyon_adi: str) -> Optional[Dict[str, Any]]:
     """
     Deniz tarafı olan yöndeki iki Konak tramvay durağı arasındaki mesafeyi metre cinsinden hesaplar.
     Durak adlarının tam olarak eşleşmesi gerekir.
