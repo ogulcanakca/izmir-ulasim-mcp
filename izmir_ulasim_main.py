@@ -1186,7 +1186,7 @@ def konak_tram_2_duraklar_arasi_mesafe_hesapla(kalkis_istasyon_adi: str, varis_i
 
 # --- Tool 23: Çiğli Tramvay Durakları Arası Mesafe Hesaplama ---
 @mcp.tool()
-def cigli_tramvay_duraklar_arasi_mesafe_hesapla(kalkis_istasyon_adi: str, varis_istasyon_adi: str) -> Optional[Dict[str, Any]]:
+def cigli_tram_duraklar_arasi_mesafe_hesapla(kalkis_istasyon_adi: str, varis_istasyon_adi: str) -> Optional[Dict[str, Any]]:
     """
     İki Çiğli tramvay durağı arasındaki mesafeyi metre cinsinden hesaplar.
     Durak adlarının tam olarak eşleşmesi gerekir.

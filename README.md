@@ -29,10 +29,10 @@ Bu MCP sunucusu, aşağıdaki araçları (tool) içermektedir:
 * **`tramvay_hatlarini_getir()`**: İzmir tramvayına ait tüm hatların bir listesini döndürür.
 * **`tramvay_istasyonlarini_getir(hat_id)`**: Belirtilen hat ID'sine sahip tramvay hattının tüm istasyonlarını getirir.
 * **`tramvay_seferlerini_getir(hat_id)`**: Belirtilen hat ID'sine göre tramvay sefer saatlerini getirir.
-* **`karsiyaka_tramvay_duraklar_arasi_mesafe_hesapla(kalkis_istasyon_adi, varis_istasyon_adi)`**: İki Karşıyaka tramvay istasyonu arasındaki mesafeyi metre cinsinden hesaplar.
-* **`konak_tramvay_1_duraklar_arasi_mesafe_hesapla(kalkis_istasyon_adi, varis_istasyon_adi)`**: Kara tarafı olan yöndeki iki Konak tramvay durağı arasındaki mesafeyi metre cinsinden hesaplar.
-* **`konak_tramvay_2_duraklar_arasi_mesafe_hesapla(kalkis_istasyon_adi, varis_istasyon_adi)`**: Deniz tarafı olan yöndeki iki Konak tramvay durağı arasındaki mesafeyi metre cinsinden hesaplar.
-* **`cigli_tramvay_duraklar_arasi_mesafe_hesapla(kalkis_istasyon_adi, varis_istasyon_adi)`**: İki Çiğli tramvay durağı arasındaki mesafeyi metre cinsinden hesaplar.
+* **`karsiyaka_tram_duraklar_arasi_mesafe_hesapla(kalkis_istasyon_adi, varis_istasyon_adi)`**: İki Karşıyaka tramvay istasyonu arasındaki mesafeyi metre cinsinden hesaplar.
+* **`konak_tram_1_duraklar_arasi_mesafe_hesapla(kalkis_istasyon_adi, varis_istasyon_adi)`**: Kara tarafı olan yöndeki iki Konak tramvay durağı arasındaki mesafeyi metre cinsinden hesaplar.
+* **`konak_tram_2_duraklar_arasi_mesafe_hesapla(kalkis_istasyon_adi, varis_istasyon_adi)`**: Deniz tarafı olan yöndeki iki Konak tramvay durağı arasındaki mesafeyi metre cinsinden hesaplar.
+* **`cigli_tram_duraklar_arasi_mesafe_hesapla(kalkis_istasyon_adi, varis_istasyon_adi)`**: İki Çiğli tramvay durağı arasındaki mesafeyi metre cinsinden hesaplar.
 
 ## Kurulum ve Kullanım
 
