@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.1.3](https://github.com/ogulcanakca/izmir-ulasim-mcp/compare/v1.1.2...v1.1.3) (2025-06-21)
+
+
+### Bug Fixes
+
+* iki adet tool'un isimleri kisaltildi ([a783a01](https://github.com/ogulcanakca/izmir-ulasim-mcp/commit/a783a01edb70940cefc13360cce56d51bc0a4f0e))
+
 ### [1.1.2](https://github.com/ogulcanakca/izmir-ulasim-mcp/compare/v1.1.1...v1.1.2) (2025-06-21)
 
 
