@@ -333,7 +333,7 @@ def load_or_process_konak_tram_deniz_distances_data(
     try:
         logger.info(f"İndirilen ham Konak tramvay (deniz) mesafe verisi '{raw_csv_path}' işleniyor...")
 
-        df = pd.read_csv(raw_csv_path, delimiter='\t')
+        df = pd.read_csv(raw_csv_path, delimiter=';')
         
         df['MESAFE'] = pd.to_numeric(df['MESAFE'], errors='coerce')
         df = df.dropna(subset=['MESAFE'])

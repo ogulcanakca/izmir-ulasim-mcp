@@ -45,6 +45,8 @@ Bu MCP sunucusu, aşağıdaki araçları (tool) içermektedir:
 * `pandas`
 * `numpy`
 * `flask`
+* `pyarrow`
+* `fastparquet`
 
 ### Kurulum
 1.  **Projeyi klonlayın veya indirin:**
