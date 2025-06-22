@@ -1,6 +1,7 @@
 # İzmir Ulaşım MCP Sunucusu
 
 İzmir toplu taşıma verilerine erişim sağlayan bir Model Bağlam Protokolü (MCP) sunucusu, AI asistanlarının şehir ulaşım verilerini ve analizlerini sorgulamasına olanak tanır.
+    [npm üzerinden](https://www.npmjs.com/package/izmir-ulasim-mcp) de erişebilirsiniz.
 
 ## Genel Bakış
 
